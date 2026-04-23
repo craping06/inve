@@ -1,0 +1,2496 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>가치투자 선별기 · NCAV & S-RIM Dual Filter</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+  }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:#0B0F19;
+    --surface:#F7F8FB;
+  }
+  html,body { font-family: "Pretendard", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .card { background:#fff; border:1px solid #E6E8EE; border-radius:14px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; }
+  .kbd { font-family:"JetBrains Mono",monospace; font-size:11px; padding:1px 6px; border:1px solid #E6E8EE; border-radius:6px; background:#F7F8FB; color:#475569; }
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  input[type=number]{ -moz-appearance:textfield; }
+  .field-row:hover { background:#F9FAFB; }
+  .badge-green   { background:#D1FAE5; color:#065F46; border:1px solid #34D399; }
+  .badge-yellow  { background:#FEF3C7; color:#92400E; border:1px solid #F59E0B; }
+  .badge-red     { background:#FEE2E2; color:#991B1B; border:1px solid #F87171; }
+  .signal-green  { background: radial-gradient(circle at 30% 30%, #6EE7B7, #10B981 70%, #047857 100%); box-shadow: 0 0 40px rgba(16,185,129,.55), inset 0 0 12px rgba(255,255,255,.3); }
+  .signal-yellow { background: radial-gradient(circle at 30% 30%, #FDE68A, #F59E0B 70%, #B45309 100%); box-shadow: 0 0 40px rgba(245,158,11,.55), inset 0 0 12px rgba(255,255,255,.3); }
+  .signal-red    { background: radial-gradient(circle at 30% 30%, #FCA5A5, #EF4444 70%, #991B1B 100%); box-shadow: 0 0 40px rgba(239,68,68,.55), inset 0 0 12px rgba(255,255,255,.3); }
+  .signal-gray   { background: radial-gradient(circle at 30% 30%, #E5E7EB, #9CA3AF 70%, #4B5563 100%); box-shadow: 0 0 20px rgba(0,0,0,.1), inset 0 0 12px rgba(255,255,255,.3); }
+  .tooltip { position:relative; }
+  .tooltip:hover .tooltip-body { opacity:1; transform: translateY(0); }
+  .tooltip-body { opacity:0; transform: translateY(4px); transition: all .15s ease; pointer-events:none; position:absolute; z-index:40; bottom:calc(100% + 8px); left:50%; translate:-50% 0; background:#0B0F19; color:#fff; font-size:11px; padding:8px 10px; border-radius:8px; width:max-content; max-width:260px; line-height:1.4; box-shadow:0 8px 24px rgba(0,0,0,.15); }
+  .tooltip-body::after { content:""; position:absolute; top:100%; left:50%; translate:-50% 0; border:6px solid transparent; border-top-color:#0B0F19; }
+  details > summary { list-style:none; cursor:pointer; }
+  details > summary::-webkit-details-marker { display:none; }
+  .num-input:focus { outline:none; border-color:#111827; box-shadow: 0 0 0 3px rgba(17,24,39,.08); }
+</style>
+</head>
+<body class="bg-[color:var(--surface)] text-slate-900">
+
+<!-- Top bar -->
+<header class="border-b border-slate-200 bg-white">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-slate-900 text-white grid place-items-center font-bold">V</div>
+      <div>
+        <div class="text-sm text-slate-500 leading-tight">건설기계 · 제조업 특화</div>
+        <h1 class="text-lg font-bold leading-tight">가치투자 선별기 <span class="text-slate-400 font-medium">· NCAV × S-RIM</span></h1>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="hidden md:flex items-center gap-2 text-xs text-slate-500 mr-2">
+        <span class="chip badge-green">Double Pass</span>
+        <span class="chip badge-yellow">Single Pass</span>
+        <span class="chip badge-red">Reject</span>
+      </div>
+      <button id="openListBtn" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-sm font-medium">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        투자종목 리스트
+        <span id="listCount" class="ml-1 px-1.5 py-0.5 rounded-full bg-slate-900 text-white text-[10px] mono">0</span>
+      </button>
+      <button id="openSettingsBtn" title="API 설정" class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-600">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+  <!-- LEFT: INPUT -->
+  <section class="lg:col-span-2 card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Step 1</div>
+        <h2 class="text-xl font-bold">사업보고서 입력</h2>
+      </div>
+      <button id="loadSample" class="text-xs px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 font-medium">예시 불러오기</button>
+    </div>
+
+    <!-- PDF 업로드 영역 -->
+    <div id="uploadZone" class="mb-5 p-5 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 text-center transition-colors">
+      <input type="file" id="reportFile" accept=".pdf,application/pdf" class="hidden" />
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 mx-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+      </svg>
+      <div class="text-sm font-semibold text-slate-700 mt-2">사업보고서 PDF 업로드</div>
+      <div class="text-[11px] text-slate-500 mb-3">DART 사업보고서 PDF · 자동 추출 후 검토·수정 가능</div>
+      <button type="button" id="pickFileBtn" class="px-4 py-2 text-sm rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium">파일 선택</button>
+      <div id="uploadStatus" class="text-[11px] text-slate-500 mt-3">아직 업로드된 파일이 없습니다</div>
+      <div id="extractReport" class="hidden mt-3 text-left text-[11px] bg-white border border-slate-200 rounded-lg p-3 space-y-1"></div>
+    </div>
+
+    <div class="space-y-4">
+      <!-- 종목명 -->
+      <div>
+        <label class="text-sm font-medium text-slate-700">종목명</label>
+        <input id="name" type="text" placeholder="예: 흥국" class="num-input w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm" />
+      </div>
+
+      <!-- 기본 정보 -->
+      <details open class="border border-slate-200 rounded-lg overflow-hidden">
+        <summary class="px-4 py-3 bg-slate-50 text-sm font-semibold flex items-center justify-between">
+          <span>[A] 기본 정보</span><span class="text-slate-400">▾</span>
+        </summary>
+        <div class="p-4 space-y-3">
+          <div class="field-row flex items-center gap-3">
+            <label class="flex-1 text-sm tooltip">
+              현재 시가총액
+              <span class="tooltip-body">(현재주가 × 발행주식총수). 단위: 억 원</span>
+            </label>
+            <div class="flex items-center gap-1">
+              <input id="mcap" type="number" step="any" placeholder="0" class="num-input w-32 px-3 py-2 border border-slate-300 rounded-lg mono text-right text-sm" />
+              <span class="text-xs text-slate-500 w-8">억원</span>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- NCAV -->
+      <details open class="border border-slate-200 rounded-lg overflow-hidden">
+        <summary class="px-4 py-3 bg-slate-50 text-sm font-semibold flex items-center justify-between">
+          <span>[B] NCAV 필터 (청산가치)</span><span class="text-slate-400">▾</span>
+        </summary>
+        <div class="p-4 space-y-3">
+          <div class="field-row flex items-center gap-3">
+            <label class="flex-1 text-sm tooltip">
+              유동자산
+              <span class="tooltip-body">1년 내 현금화 가능 자산. 재무상태표 '유동자산 합계'</span>
+            </label>
+            <div class="flex items-center gap-1">
+              <input id="curAssets" type="number" step="any" placeholder="0" class="num-input w-32 px-3 py-2 border border-slate-300 rounded-lg mono text-right text-sm" />
+              <span class="text-xs text-slate-500 w-8">억원</span>
+            </div>
+          </div>
+          <div class="field-row flex items-center gap-3">
+            <label class="flex-1 text-sm tooltip">
+              총부채
+              <span class="tooltip-body">유동부채 + 비유동부채. 모든 빚의 합계</span>
+            </label>
+            <div class="flex items-center gap-1">
+              <input id="totalLiab" type="number" step="any" placeholder="0" class="num-input w-32 px-3 py-2 border border-slate-300 rounded-lg mono text-right text-sm" />
+              <span class="text-xs text-slate-500 w-8">억원</span>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- S-RIM -->
+      <details open class="border border-slate-200 rounded-lg overflow-hidden">
+        <summary class="px-4 py-3 bg-slate-50 text-sm font-semibold flex items-center justify-between">
+          <span>[C] S-RIM 필터 (내재가치)</span><span class="text-slate-400">▾</span>
+        </summary>
+        <div class="p-4 space-y-3">
+          <div class="field-row flex items-center gap-3">
+            <label class="flex-1 text-sm tooltip">
+              자기자본 (지배주주)
+              <span class="tooltip-body">지배주주지분 기준. 자본총계 - 비지배지분</span>
+            </label>
+            <div class="flex items-center gap-1">
+              <input id="equity" type="number" step="any" placeholder="0" class="num-input w-32 px-3 py-2 border border-slate-300 rounded-lg mono text-right text-sm" />
+              <span class="text-xs text-slate-500 w-8">억원</span>
+            </div>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-white">
+            <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 flex items-center justify-between">
+              <span>주주이익 구성 요소 <span class="text-slate-400 font-normal">(연결재무제표에서 그대로 입력)</span></span>
+              <span class="text-[10px] text-slate-400 mono">NI + D&amp;A − CapEx</span>
+            </div>
+            <div class="px-3 py-2 space-y-2">
+              <div class="field-row flex items-center gap-3">
+                <label class="flex-1 text-sm tooltip">
+                  당기순이익 <span class="text-slate-400 text-xs">(지배주주)</span>
+                  <span class="tooltip-body">연결손익계산서의 '지배기업 소유주지분 순이익'. 비지배지분 제외</span>
+                </label>
+                <div class="flex items-center gap-1">
+                  <input id="netIncome" type="number" step="any" placeholder="0" class="num-input w-32 px-3 py-2 border border-slate-300 rounded-lg mono text-right text-sm" />
+                  <span class="text-xs text-slate-500 w-8">억원</span>
+                </div>
+              </div>
+              <div class="field-row flex items-center gap-3">
+                <label class="flex-1 text-sm tooltip">
+                  + 감가상각비 &amp; 무형자산상각비
+                  <span class="tooltip-body">현금흐름표 '영업활동 조정' 항목의 감가상각비 + 무형자산상각비 합계</span>
+                </label>
+                <div class="flex items-center gap-1">
+                  <input id="depreciation" type="number" step="any" placeholder="0" class="num-input w-32 px-3 py-2 border border-slate-300 rounded-lg mono text-right text-sm" />
+                  <span class="text-xs text-slate-500 w-8">억원</span>
+                </div>
+              </div>
+              <div class="field-row flex items-center gap-3">
+                <label class="flex-1 text-sm tooltip">
+                  − 자본적지출 (CapEx)
+                  <span class="tooltip-body">현금흐름표 투자활동 중 '유형자산 취득' + '무형자산 취득'. 양수로 입력</span>
+                </label>
+                <div class="flex items-center gap-1">
+                  <input id="capex" type="number" step="any" placeholder="0" class="num-input w-32 px-3 py-2 border border-slate-300 rounded-lg mono text-right text-sm" />
+                  <span class="text-xs text-slate-500 w-8">억원</span>
+                </div>
+              </div>
+            </div>
+            <div class="px-3 py-2 bg-slate-900 text-white rounded-b-lg flex items-center justify-between">
+              <span class="text-xs font-semibold">= 산출 주주이익</span>
+              <span class="mono font-bold text-sm"><span id="derivedOwnerEarn">0</span> 억원</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 pt-1 border-t border-dashed border-slate-200 mt-2">
+            <div>
+              <label class="text-xs font-medium text-slate-600">요구수익률 (k)</label>
+              <div class="flex items-center gap-1 mt-1">
+                <input id="k" type="number" step="0.01" value="8.12" class="num-input w-full px-3 py-2 border border-slate-300 rounded-lg mono text-right text-sm" />
+                <span class="text-xs text-slate-500">%</span>
+              </div>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-600">지속계수 (w)</label>
+              <div class="flex items-center gap-1 mt-1">
+                <input id="w" type="number" step="0.01" min="0" max="1" value="0.9" class="num-input w-full px-3 py-2 border border-slate-300 rounded-lg mono text-right text-sm" />
+                <span class="text-xs text-slate-500 w-4">×</span>
+              </div>
+            </div>
+          </div>
+          <div class="text-[11px] text-slate-500 leading-relaxed">
+            <span class="kbd">k=8.12%</span> 은 10년 국채수익률+리스크프리미엄 기본값. <span class="kbd">w=0.9</span> 는 보수적 시나리오 (완전 지속 1.0 ↔ 1회성 0.0).
+          </div>
+        </div>
+      </details>
+
+      <div class="pt-2 space-y-2">
+        <button id="evaluateBtn" class="w-full px-4 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-bold text-base shadow-sm transition-colors flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          판정하기
+        </button>
+        <div class="flex items-center gap-2">
+          <button id="resetBtn" class="flex-1 px-4 py-2 text-sm rounded-lg border border-slate-300 hover:bg-slate-50 font-medium" title="현재 입력·체크리스트·결정을 비웁니다 (저장된 리스트는 유지)">
+            초기화
+          </button>
+          <button id="hardResetBtn" class="flex-1 px-4 py-2 text-sm rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 font-medium inline-flex items-center justify-center gap-1.5" title="저장된 투자종목 리스트까지 포함해 모든 데이터를 삭제합니다">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            전체 초기화
+          </button>
+        </div>
+        <div id="inputStatus" class="text-[11px] text-slate-400 text-right">모든 항목을 입력 후 판정하기를 눌러주세요</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT: DASHBOARD -->
+  <section class="lg:col-span-3 space-y-6">
+
+    <!-- Signal + verdict -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Step 2</div>
+          <h2 class="text-xl font-bold">판별 결과 <span id="stockNameLabel" class="text-slate-400 font-medium text-base"></span></h2>
+        </div>
+        <div id="statusChip" class="chip bg-slate-100 text-slate-500 border border-slate-200">대기 중</div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- NCAV card -->
+          <div id="ncavCard" class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+            <div class="flex items-center justify-between mb-1">
+              <div class="text-xs font-semibold text-slate-500">① NCAV 필터</div>
+              <span id="ncavBadge" class="chip badge-red">-</span>
+            </div>
+            <div class="text-2xl font-bold mono" id="ncavValue">—</div>
+            <div class="text-[11px] text-slate-500">유동자산 − 총부채 <span class="text-slate-400">vs 시총</span></div>
+            <div class="h-1.5 w-full bg-slate-200 rounded-full mt-3 overflow-hidden">
+              <div id="ncavBar" class="h-full bg-slate-400 transition-all" style="width:0%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+              <span>시총 / NCAV</span><span class="mono" id="ncavRatio">—</span>
+            </div>
+          </div>
+
+          <!-- S-RIM card -->
+          <div id="srimCard" class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+            <div class="flex items-center justify-between mb-1">
+              <div class="text-xs font-semibold text-slate-500">② S-RIM 필터</div>
+              <span id="srimBadge" class="chip badge-red">-</span>
+            </div>
+            <div class="text-2xl font-bold mono" id="srimValue">—</div>
+            <div class="text-[11px] text-slate-500">내재가치 IV <span class="text-slate-400">vs 시총</span></div>
+            <div class="h-1.5 w-full bg-slate-200 rounded-full mt-3 overflow-hidden">
+              <div id="srimBar" class="h-full bg-slate-400 transition-all" style="width:0%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+              <span>안전마진</span><span class="mono" id="safetyMargin">—</span>
+            </div>
+          </div>
+      </div>
+    </div>
+
+    <!-- Step 3: 종합 평가 및 판정 -->
+    <div class="card p-6">
+      <div class="mb-4">
+        <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Step 3</div>
+        <h3 class="font-bold text-base">종합 평가 및 판정</h3>
+      </div>
+
+      <!-- 경제적 해자 (팻 도시) -->
+      <div>
+        <div class="flex items-start justify-between mb-3 gap-3">
+          <div class="min-w-0">
+            <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Moat · 팻 도시</div>
+            <div class="font-bold text-sm text-slate-900">🛡️ 경제적 해자 (Economic Moat)</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">지속 가능한 경쟁 우위 · 0~5점 · 판정하기 시 사업보고서 자동 평가</div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <div class="text-xs text-slate-500"><span id="moatTotal" class="font-bold text-slate-900 text-base mono">0</span><span class="text-slate-400"> / 20</span></div>
+            <div id="moatTier" class="text-[10px] text-slate-400">평가 대기</div>
+            <div class="mt-1.5 flex items-center gap-1 justify-end flex-wrap">
+              <button id="autoMoatBtn" type="button" disabled class="text-[10px] px-2 py-1 rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed font-medium inline-flex items-center gap-1 transition-colors">
+                🤖 키워드 재평가
+              </button>
+              <button id="aiMoatBtn" type="button" disabled class="text-[10px] px-2 py-1 rounded-md border border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed font-semibold inline-flex items-center gap-1 transition-colors">
+                ✨ AI 분석
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2.5">
+          <div class="moat-card rounded-xl border border-slate-200 p-3 transition-colors" data-key="intangible">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <div class="font-semibold text-sm text-slate-900">① 무형 자산</div>
+                  <button type="button" class="moat-detail-btn text-[10px] px-2 py-0.5 rounded-md border border-slate-300 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed font-medium transition-colors" data-key="intangible" disabled title="사업보고서 업로드 후 활성화됩니다">📋 상세분석</button>
+                </div>
+                <div class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">강력한 브랜드·특허·라이선스로 가격 결정권이 있는가? <span class="text-slate-400">(예: 코카콜라, 애플)</span></div>
+              </div>
+              <div class="moat-rate flex items-center gap-1 flex-shrink-0" data-key="intangible"></div>
+            </div>
+            <div class="moat-evidence hidden mt-2 text-[10px] bg-slate-50 rounded-md p-2 border border-slate-100 flex flex-wrap items-center gap-1"></div>
+          </div>
+          <div class="moat-card rounded-xl border border-slate-200 p-3 transition-colors" data-key="switching">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <div class="font-semibold text-sm text-slate-900">② 전환 비용</div>
+                  <button type="button" class="moat-detail-btn text-[10px] px-2 py-0.5 rounded-md border border-slate-300 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed font-medium transition-colors" data-key="switching" disabled title="사업보고서 업로드 후 활성화됩니다">📋 상세분석</button>
+                </div>
+                <div class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">고객이 경쟁사 제품으로 옮길 때 비용·심리적 저항이 큰가? <span class="text-slate-400">(예: ERP, MS Office)</span></div>
+              </div>
+              <div class="moat-rate flex items-center gap-1 flex-shrink-0" data-key="switching"></div>
+            </div>
+            <div class="moat-evidence hidden mt-2 text-[10px] bg-slate-50 rounded-md p-2 border border-slate-100 flex flex-wrap items-center gap-1"></div>
+          </div>
+          <div class="moat-card rounded-xl border border-slate-200 p-3 transition-colors" data-key="network">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <div class="font-semibold text-sm text-slate-900">③ 네트워크 효과</div>
+                  <button type="button" class="moat-detail-btn text-[10px] px-2 py-0.5 rounded-md border border-slate-300 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed font-medium transition-colors" data-key="network" disabled title="사업보고서 업로드 후 활성화됩니다">📋 상세분석</button>
+                </div>
+                <div class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">사용자 수가 늘어날수록 서비스 가치가 기하급수적으로 커지는가? <span class="text-slate-400">(예: 당근마켓, 카카오톡)</span></div>
+              </div>
+              <div class="moat-rate flex items-center gap-1 flex-shrink-0" data-key="network"></div>
+            </div>
+            <div class="moat-evidence hidden mt-2 text-[10px] bg-slate-50 rounded-md p-2 border border-slate-100 flex flex-wrap items-center gap-1"></div>
+          </div>
+          <div class="moat-card rounded-xl border border-slate-200 p-3 transition-colors" data-key="cost">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <div class="font-semibold text-sm text-slate-900">④ 원가 우위</div>
+                  <button type="button" class="moat-detail-btn text-[10px] px-2 py-0.5 rounded-md border border-slate-300 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed font-medium transition-colors" data-key="cost" disabled title="사업보고서 업로드 후 활성화됩니다">📋 상세분석</button>
+                </div>
+                <div class="text-[11px] text-slate-500 mt-0.5 leading-relaxed">프로세스 혁신·규모의 경제로 경쟁사보다 싸게 생산할 수 있는가? <span class="text-slate-400">(예: 월마트, 코스트코)</span></div>
+              </div>
+              <div class="moat-rate flex items-center gap-1 flex-shrink-0" data-key="cost"></div>
+            </div>
+            <div class="moat-evidence hidden mt-2 text-[10px] bg-slate-50 rounded-md p-2 border border-slate-100 flex flex-wrap items-center gap-1"></div>
+          </div>
+        </div>
+
+        <!-- AI 정성 분석 결과 (기본 숨김) -->
+        <div id="aiMoatPanel" class="hidden mt-3 rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4">
+          <div class="flex items-center justify-between gap-3 mb-2 flex-wrap">
+            <div class="min-w-0">
+              <div class="text-[10px] uppercase tracking-wider text-indigo-500 font-bold">AI Qualitative Analysis · 5대 해자</div>
+              <div id="aiMoatMeta" class="text-[11px] text-slate-500 mt-0.5"></div>
+            </div>
+            <button id="aiMoatCloseBtn" type="button" class="text-[10px] px-2 py-0.5 rounded-md border border-slate-300 text-slate-500 hover:bg-white">닫기</button>
+          </div>
+          <div id="aiMoatBody" class="space-y-2.5 text-[12px] text-slate-800"></div>
+        </div>
+      </div>
+
+      <!-- 최종 종합 판정 (신호등 포함 · 정량 + 해자) -->
+      <div id="finalVerdict" class="mt-6 p-5 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50">
+        <div class="flex items-center gap-5">
+          <!-- Traffic light (이동됨 · Step 2 에서) -->
+          <div class="flex-shrink-0 flex flex-col items-center gap-2.5 p-3.5 rounded-2xl bg-slate-900 border border-slate-800">
+            <div id="lampGreen"  class="w-10 h-10 rounded-full signal-gray transition-all duration-300"></div>
+            <div id="lampYellow" class="w-10 h-10 rounded-full signal-gray transition-all duration-300"></div>
+            <div id="lampRed"    class="w-10 h-10 rounded-full signal-gray transition-all duration-300"></div>
+            <div id="verdictText" class="mt-0.5 text-center font-bold text-[10px] uppercase tracking-wider text-slate-400 whitespace-nowrap">대기</div>
+          </div>
+          <!-- Verdict text -->
+          <div class="flex-1 min-w-0 text-left">
+            <div id="finalVerdictLabel" class="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-1">최종 종합 판정 (정량 + 해자)</div>
+            <div id="finalVerdictText" class="text-lg font-bold text-slate-500">판정 대기</div>
+            <div id="finalVerdictDetail" class="text-xs text-slate-500 mt-1.5 leading-relaxed">판정하기 + 해자 평가 시 최종 매수 적합 판정</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 정성 체크리스트 (참고용 · 최종 판정에 영향 없음) -->
+      <div class="mt-6 pt-5 border-t border-slate-200">
+        <div class="flex items-start justify-between mb-3 gap-3">
+          <div class="min-w-0">
+            <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">정성 판단 · 참고용</div>
+            <div class="font-bold text-sm text-slate-900">정성 체크리스트</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">투자 판단 참고용 · 최종 종합 판정에는 영향을 주지 않습니다</div>
+          </div>
+          <div class="text-xs text-slate-500 text-right flex-shrink-0">
+            <span id="checkCount" class="font-bold text-slate-900 text-base mono">0</span>
+            <span class="text-slate-400"> / 3 확인</span>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <!-- 1: 주주환원 -->
+          <div class="check-card rounded-xl border border-slate-200 hover:border-slate-400 transition-colors overflow-hidden" data-key="dividend">
+            <label class="flex items-start gap-3 p-4 cursor-pointer">
+              <input type="checkbox" class="check-item w-5 h-5 mt-0.5 accent-slate-900 flex-shrink-0" data-key="dividend" />
+              <div class="flex-1">
+                <div class="font-semibold text-sm text-slate-900">① 최근 1년간 주주환원 정책이 있었는가?</div>
+                <div class="text-xs text-slate-500 mt-0.5 leading-relaxed">현금배당, 자사주 매입·소각 등 실제 주주 환원 이력을 확인합니다. 이익이 내부에만 쌓이는 회사는 가치 실현이 지연됩니다.</div>
+                <input type="text" placeholder="예: 2025 결산배당 200원 · 자사주 소각 30억" class="check-memo mt-2 w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-md bg-slate-50 focus:bg-white focus:border-slate-400 outline-none" data-for="dividend" />
+              </div>
+            </label>
+          </div>
+
+          <!-- 2: 주봉 저점 -->
+          <div class="check-card rounded-xl border border-slate-200 hover:border-slate-400 transition-colors overflow-hidden" data-key="chart">
+            <label class="flex items-start gap-3 p-4 cursor-pointer">
+              <input type="checkbox" class="check-item w-5 h-5 mt-0.5 accent-slate-900 flex-shrink-0" data-key="chart" />
+              <div class="flex-1">
+                <div class="font-semibold text-sm text-slate-900">② 현 주가는 주봉상 저점 구간에 위치해 있나?</div>
+                <div class="text-xs text-slate-500 mt-0.5 leading-relaxed">주봉 차트 기준 52주 신저가 부근 또는 장기 박스권 하단인지 확인합니다. 고점 추격 매수는 가치투자 원칙에 반합니다.</div>
+                <input type="text" placeholder="예: 52주 최저가 대비 +8% · 3년 박스권 하단 지지" class="check-memo mt-2 w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-md bg-slate-50 focus:bg-white focus:border-slate-400 outline-none" data-for="chart" />
+              </div>
+            </label>
+          </div>
+
+          <!-- 3: 대표이사 확인 -->
+          <div class="check-card rounded-xl border border-slate-200 hover:border-slate-400 transition-colors overflow-hidden" data-key="ceo">
+            <label class="flex items-start gap-3 p-4 cursor-pointer">
+              <input type="checkbox" class="check-item w-5 h-5 mt-0.5 accent-slate-900 flex-shrink-0" data-key="ceo" />
+              <div class="flex-1">
+                <div class="font-semibold text-sm text-slate-900">③ 대표이사를 확인했는가?</div>
+                <div class="text-xs text-slate-500 mt-0.5 leading-relaxed">대표이사 이력·임기·지분율·과거 공시 위반 여부·전문성을 점검합니다. 지배구조 리스크는 저평가를 장기화시키는 주요 원인입니다.</div>
+                <input type="text" placeholder="예: 홍길동 대표 (창업자, 지분 15%, 임기 2027까지)" class="check-memo mt-2 w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-md bg-slate-50 focus:bg-white focus:border-slate-400 outline-none" data-for="ceo" />
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 최종 매수 결정 + 저장 -->
+      <div class="mt-5 p-5 rounded-xl border border-slate-300 bg-white">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Final</div>
+            <div class="font-bold text-sm">최종 매수 여부 결정</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <label class="decision-opt cursor-pointer p-3 rounded-lg border-2 border-slate-200 hover:border-slate-400 text-center transition-all" data-value="buy">
+            <input type="radio" name="decision" value="buy" class="sr-only" />
+            <div class="text-base font-bold text-emerald-600">매수 ✓</div>
+            <div class="text-[10px] text-slate-500 mt-0.5">Buy</div>
+          </label>
+          <label class="decision-opt cursor-pointer p-3 rounded-lg border-2 border-slate-200 hover:border-slate-400 text-center transition-all" data-value="watch">
+            <input type="radio" name="decision" value="watch" class="sr-only" />
+            <div class="text-base font-bold text-amber-600">관찰 ◐</div>
+            <div class="text-[10px] text-slate-500 mt-0.5">Watch</div>
+          </label>
+          <label class="decision-opt cursor-pointer p-3 rounded-lg border-2 border-slate-200 hover:border-slate-400 text-center transition-all" data-value="skip">
+            <input type="radio" name="decision" value="skip" class="sr-only" />
+            <div class="text-base font-bold text-rose-600">회피 ✗</div>
+            <div class="text-[10px] text-slate-500 mt-0.5">Skip</div>
+          </label>
+        </div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">매수 판단 · 메모</label>
+        <textarea id="memo" rows="3" placeholder="판단 근거를 간단히 기록 · 예) 자사주 소각 진행, 52주 저가 지지, 창업자 지분 15%" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-slate-500 outline-none resize-none"></textarea>
+        <button id="saveBtn" class="w-full mt-3 px-4 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+          저장하고 초기화
+        </button>
+        <div id="saveHint" class="text-[11px] text-slate-400 text-center mt-2">저장 시 투자종목 리스트에 추가되고 현재 입력은 모두 초기화됩니다</div>
+      </div>
+
+      <details class="mt-4 text-sm">
+        <summary class="font-semibold text-slate-600 px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center justify-between">
+          <span>계산 상세 보기</span><span class="text-slate-400 text-xs">▾</span>
+        </summary>
+        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm mono">
+          <div class="flex justify-between"><span class="text-slate-500">NCAV = 유동자산 − 총부채</span><span id="d_ncav">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">ROE = 주주이익 ÷ 자기자본</span><span id="d_roe">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">초과이익 = 자본 × (ROE − k)</span><span id="d_excess">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">S-RIM IV</span><span id="d_iv">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">시총 / NCAV</span><span id="d_ratioNcav">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">시총 / IV</span><span id="d_ratioIV">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">NCAV 안전마진</span><span id="d_marginNcav">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">S-RIM 안전마진</span><span id="d_marginIV">—</span></div>
+        </div>
+      </details>
+
+      <div class="mt-4 text-[11px] text-slate-400 leading-relaxed border-t border-slate-200 pt-3">
+        ※ 본 도구는 그레이엄 NCAV + 김철상 S-RIM 공식 기반 사전 스크리닝 도구입니다. PDF 자동 추출은 최선 노력 기반(Best-effort)이며 DART 보고서 포맷에 따라 일부 항목이 누락될 수 있으니 반드시 검토 후 수정하십시오.
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<footer class="max-w-6xl mx-auto px-6 py-6 text-[11px] text-slate-400">
+  v1.0 · 건설기계/제조업 특화 Dual Filter · 단위 통일 필수 (억 원)
+</footer>
+
+<!-- 투자종목 리스트 모달 -->
+<div id="listModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm p-4 items-center justify-center" style="display:none;">
+  <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl">
+    <div class="flex items-center justify-between p-5 border-b border-slate-200">
+      <div>
+        <h3 class="text-lg font-bold">투자종목 리스트</h3>
+        <div class="text-xs text-slate-500 mt-0.5">저장된 종목 <span id="modalCount" class="mono font-semibold text-slate-700">0</span>건 · 브라우저 로컬에만 저장됩니다</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="exportCsvBtn" class="text-xs px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 font-medium">CSV 내보내기</button>
+        <button id="clearListBtn" class="text-xs px-3 py-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 font-medium">전체 삭제</button>
+        <button id="closeListBtn" class="w-8 h-8 rounded-full hover:bg-slate-100 grid place-items-center text-slate-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="listBody" class="flex-1 overflow-y-auto p-5 space-y-3 bg-slate-50">
+      <div id="listEmpty" class="py-16 text-center text-slate-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 mx-auto mb-2 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+        <div class="text-sm font-medium">저장된 종목이 없습니다</div>
+        <div class="text-xs mt-1">판정 후 저장하면 이곳에 누적됩니다</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- API 설정 팝업 -->
+<div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm p-4 items-center justify-center" style="display:none;">
+  <div class="bg-white rounded-2xl w-full max-w-lg overflow-hidden flex flex-col shadow-2xl">
+    <div class="flex items-start justify-between p-5 border-b border-slate-200 gap-3">
+      <div class="min-w-0 flex-1">
+        <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Settings</div>
+        <h3 class="text-lg font-bold text-slate-900 mt-0.5">⚙️ AI 분석 API 설정</h3>
+        <div class="text-xs text-slate-500 mt-0.5">API Key는 브라우저 localStorage에만 저장됩니다 (서버 전송 없음)</div>
+      </div>
+      <button id="closeSettingsBtn" type="button" class="w-8 h-8 rounded-full hover:bg-slate-100 grid place-items-center text-slate-500 flex-shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="p-5 space-y-4 bg-slate-50">
+      <div>
+        <label class="text-xs font-semibold text-slate-700 uppercase tracking-wider">LLM 제공사</label>
+        <select id="llmProvider" class="w-full mt-1.5 px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm">
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="openai">OpenAI (GPT)</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-slate-700 uppercase tracking-wider">모델</label>
+        <input id="llmModel" type="text" placeholder="claude-sonnet-4-6 또는 gpt-4o" class="w-full mt-1.5 px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm mono" />
+        <div id="llmModelHint" class="text-[10px] text-slate-500 mt-1">기본: Claude → <span class="mono">claude-sonnet-4-6</span> / OpenAI → <span class="mono">gpt-4o</span></div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-slate-700 uppercase tracking-wider">API Key</label>
+        <div class="relative mt-1.5">
+          <input id="llmApiKey" type="password" placeholder="sk-... 또는 sk-ant-..." class="w-full px-3 py-2 pr-20 border border-slate-300 rounded-lg bg-white text-sm mono" autocomplete="off" />
+          <button id="toggleApiKeyBtn" type="button" class="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] px-2 py-0.5 rounded border border-slate-300 text-slate-600 hover:bg-slate-50">표시</button>
+        </div>
+        <div class="text-[10px] text-slate-500 mt-1 leading-relaxed">💡 Anthropic Key는 <span class="mono">sk-ant-</span>로 시작합니다. Claude는 브라우저 직접 호출을 위해 <span class="mono">anthropic-dangerous-direct-browser-access</span> 헤더를 사용합니다.</div>
+      </div>
+      <div class="flex items-center gap-2 pt-2">
+        <button id="saveSettingsBtn" class="flex-1 px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">저장</button>
+        <button id="clearSettingsBtn" class="px-4 py-2 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 text-sm font-medium">삭제</button>
+      </div>
+      <div id="settingsStatus" class="text-[11px] text-center text-slate-500"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 해자 상세분석 팝업 -->
+<div id="moatDetailModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm p-4 items-center justify-center" style="display:none;">
+  <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[88vh] overflow-hidden flex flex-col shadow-2xl">
+    <div class="flex items-start justify-between p-5 border-b border-slate-200 gap-3">
+      <div class="min-w-0 flex-1">
+        <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">사업보고서 해석 · Economic Moat</div>
+        <h3 id="moatDetailTitle" class="text-lg font-bold text-slate-900 mt-0.5">해자 상세분석</h3>
+        <div id="moatDetailSubtitle" class="text-xs text-slate-500 mt-0.5">판단 근거를 사업보고서 원문에서 추출합니다</div>
+      </div>
+      <button id="closeMoatDetailBtn" type="button" class="w-8 h-8 rounded-full hover:bg-slate-100 grid place-items-center text-slate-500 flex-shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="moatDetailBody" class="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50 text-sm text-slate-800"></div>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-xl bg-slate-900 text-white text-sm font-medium shadow-2xl opacity-0 pointer-events-none transition-all duration-200"></div>
+
+<script>
+(() => {
+  const fmt = (n, digits=1) => {
+    if (!isFinite(n) || n === null || n === undefined) return "—";
+    const abs = Math.abs(n);
+    if (abs >= 10000) return (n/10000).toFixed(digits) + "조";
+    return n.toLocaleString("ko-KR", { maximumFractionDigits: digits });
+  };
+  const pct = (n, d=1) => isFinite(n) ? (n*100).toFixed(d) + "%" : "—";
+
+  const $ = (id) => document.getElementById(id);
+  const inputs = {
+    name: $("name"),
+    mcap: $("mcap"),
+    curAssets: $("curAssets"),
+    totalLiab: $("totalLiab"),
+    equity: $("equity"),
+    netIncome: $("netIncome"),
+    depreciation: $("depreciation"),
+    capex: $("capex"),
+    k: $("k"),
+    w: $("w"),
+  };
+
+  // Global state for verdict composition
+  const state = {
+    hasEvaluated: false,
+    lastQuantKind: null,                                      // "green"|"yellow"|"red"
+    lastPdfLines: null,                                       // 사업보고서 추출 라인 — 해자 자동 평가 소스
+    lastMoatEvidence: null,                                   // { key: hits[] } — 자동 평가 근거
+    lastBizContext: null,                                     // { type, b2bRatio, ... } — B2B/B2C 분류 캐시
+    lastSubsContext: null,                                    // { has, names, evidence } — 연결 종속회사 캐시
+    aiMoatResult: null,                                       // { intangible, switching, ... } — LLM 5대 해자 분석 결과
+    lastParsed: null,                                         // { appliedScope, hasAnyConsolidated, ... } — 최근 PDF 파싱 결과
+    checks: { dividend: false, chart: false, ceo: false },
+    moats:  { intangible: 0, switching: 0, network: 0, cost: 0 },
+  };
+
+  // 투자종목 리스트 영속 저장 (입력값은 세션 한정 — 새로고침 시 초기화됨)
+  const WATCHLIST_KEY = "vi_watchlist_v1";
+  const loadWatchlist = () => { try { return JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]"); } catch { return []; } };
+  const saveWatchlist = (list) => localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list));
+
+  const getVals = () => {
+    const ni  = parseFloat(inputs.netIncome.value);
+    const dep = parseFloat(inputs.depreciation.value);
+    const cx  = parseFloat(inputs.capex.value);
+    const ownerEarn = (isFinite(ni) ? ni : 0) + (isFinite(dep) ? dep : 0) - (isFinite(cx) ? cx : 0);
+    return {
+      name: inputs.name.value.trim(),
+      mcap: parseFloat(inputs.mcap.value),
+      curAssets: parseFloat(inputs.curAssets.value),
+      totalLiab: parseFloat(inputs.totalLiab.value),
+      equity: parseFloat(inputs.equity.value),
+      netIncome: ni, depreciation: dep, capex: cx,
+      ownerEarnFilled: isFinite(ni) && isFinite(dep) && isFinite(cx),
+      ownerEarn,
+      k: parseFloat(inputs.k.value) / 100,
+      w: parseFloat(inputs.w.value),
+    };
+  };
+
+  // Live update: derived 주주이익 display + input completeness indicator
+  const updateDerived = () => {
+    const v = getVals();
+    $("derivedOwnerEarn").textContent = v.ownerEarnFilled ? v.ownerEarn.toLocaleString("ko-KR", { maximumFractionDigits: 1 }) : "—";
+    // Enable/disable button + status message
+    const required = ["mcap","curAssets","totalLiab","equity","netIncome","depreciation","capex","k","w"];
+    const missing = required.filter(k => !isFinite(parseFloat(inputs[k].value)));
+    const btn = $("evaluateBtn");
+    const msg = $("inputStatus");
+    if (missing.length === 0) {
+      btn.disabled = false;
+      msg.textContent = "모든 항목 입력 완료 · 판정하기를 눌러주세요";
+      msg.className = "flex-1 text-[11px] text-emerald-600 text-right self-center font-medium";
+    } else {
+      btn.disabled = true;
+      msg.textContent = `${missing.length}개 항목 입력 필요`;
+      msg.className = "flex-1 text-[11px] text-slate-400 text-right self-center";
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────
+  // Moat (팻 도시 경제적 해자) — 0~5 scoring
+  // ─────────────────────────────────────────────────────────
+  const MOAT_KEYS = ["intangible","switching","network","cost"];
+  const moatTotal = () => MOAT_KEYS.reduce((s,k) => s + (state.moats[k] || 0), 0);
+
+  function buildMoatButtons() {
+    document.querySelectorAll(".moat-rate").forEach(container => {
+      const key = container.dataset.key;
+      container.innerHTML = "";
+      for (let i = 0; i <= 5; i++) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "moat-btn w-6 h-6 text-[11px] font-bold rounded-md border mono transition-colors";
+        btn.textContent = i;
+        btn.dataset.val = i;
+        btn.dataset.key = key;
+        btn.addEventListener("click", () => {
+          state.moats[key] = i;
+          syncMoatUI();
+          updateFinalVerdict();
+        });
+        container.appendChild(btn);
+      }
+    });
+    syncMoatUI();
+  }
+
+  function syncMoatUI() {
+    document.querySelectorAll(".moat-rate").forEach(container => {
+      const key = container.dataset.key;
+      const cur = state.moats[key] || 0;
+      container.querySelectorAll(".moat-btn").forEach(btn => {
+        const val = parseInt(btn.dataset.val, 10);
+        const sel = val === cur;
+        btn.className = "moat-btn w-6 h-6 text-[11px] font-bold rounded-md border mono transition-colors " +
+          (sel ? "bg-slate-900 text-white border-slate-900"
+               : "bg-white text-slate-500 border-slate-200 hover:border-slate-500");
+      });
+    });
+    document.querySelectorAll(".moat-card").forEach(card => {
+      const s = state.moats[card.dataset.key] || 0;
+      card.className = "moat-card rounded-xl border p-3 transition-colors " +
+        (s >= 4 ? "border-emerald-300 bg-emerald-50/60" :
+         s >= 2 ? "border-amber-300 bg-amber-50/50"     :
+                  "border-slate-200");
+    });
+    const total = moatTotal();
+    $("moatTotal").textContent = total;
+    const tier = total >= 14 ? { t: "강력한 해자 🛡️", c: "text-emerald-700 font-semibold" }
+               : total >= 8  ? { t: "보통 수준 해자",   c: "text-amber-700 font-semibold" }
+               : total > 0   ? { t: "약한 해자",         c: "text-rose-700 font-semibold"   }
+               :               { t: "평가 대기",         c: "text-slate-400" };
+    const tierEl = $("moatTier");
+    tierEl.textContent = tier.t;
+    tierEl.className = "text-[10px] " + tier.c;
+  }
+
+  const moatTierKey = (total = moatTotal()) =>
+    total >= 14 ? "strong" : total >= 8 ? "medium" : total > 0 ? "weak" : "none";
+
+  // ─────────────────────────────────────────────────────────
+  // 사업보고서 기반 해자 자동 평가
+  //   - PDF 추출 텍스트에서 키워드 빈도 × 가중치 → 원점수
+  //   - 원점수를 0~5 척도로 매핑 (로그 스케일)
+  //   - 각 해자별 상위 근거 키워드를 UI에 표시
+  // ─────────────────────────────────────────────────────────
+  const MOAT_KEYWORDS = {
+    intangible: [
+      { pat: /지식\s*재산권|지적\s*재산권|산업\s*재산권/g,                                w: 1.1, label: "지식재산권" },
+      { pat: /등록\s*특허|보유\s*특허|특허\s*보유\s*(현황|건수)|특허권?\s*\d+\s*건/g,     w: 1.3, label: "등록·보유 특허" },
+      { pat: /특허\s*(등록|출원|보유|권|제\d|취득|기술|심사|분쟁|침해|소송|무효|매입)/g,  w: 1.0, label: "특허 활동" },
+      { pat: /특허\s*출원\s*(번호|중|건수)|등록\s*번호\s*제\s*\d+|출원\s*번호\s*제\s*\d+/g, w: 0.9, label: "특허 번호" },
+      { pat: /실용\s*신안|디자인\s*(등록|권)|의장\s*(등록|권)|저작권/g,                  w: 0.8, label: "실용신안·디자인권" },
+      { pat: /(?:^|[^가-힣A-Z0-9])(특허|Patent)(?![가-힣A-Z0-9])/gi,                      w: 0.45, label: "특허 언급" },
+      { pat: /상표\s*(권|등록|출원)|상호\s*권|Trademark/gi,                              w: 0.6, label: "상표권" },
+      { pat: /라이선스|라이센스|License|기술\s*이전|기술\s*도입/gi,                      w: 0.6, label: "라이선스·기술이전" },
+      { pat: /독점\s*(판매|공급|계약|권|사업|수입|대리점)/g,                             w: 0.8, label: "독점권" },
+      { pat: /브랜드\s*(파워|가치|인지도|력|자산|충성도)/g,                              w: 0.5, label: "브랜드 자산" },
+      { pat: /영업권|goodwill/gi,                                                        w: 0.5, label: "영업권" },
+      { pat: /인증\s*(취득|보유|획득|완료)|KS\s*(인증|마크)|ISO\s*\d+|CE\s*(인증|마크)|NEP|NET|GMP|HACCP/g, w: 0.45, label: "인증 보유" },
+      { pat: /정부\s*(허가|인가|면허|지정)|규제\s*(장벽|허가)|허가\s*(획득|보유)/g,      w: 0.8, label: "정부 허가·규제" },
+    ],
+    switching: [
+      { pat: /(전환|교체|대체)\s*비용/g,                              w: 1.0, label: "전환비용 명시" },
+      { pat: /lock[\-\s]?in|스위칭\s*코스트/gi,                       w: 1.0, label: "Lock-in" },
+      { pat: /장기\s*(공급|계약|거래|파트너십|공급망)/g,              w: 0.7, label: "장기계약" },
+      { pat: /유지보수|유지\s*관리|보수\s*계약|A\/?S\s*계약/g,        w: 0.6, label: "유지보수" },
+      { pat: /납품\s*(계약|실적|이력)/g,                              w: 0.4, label: "납품실적" },
+      { pat: /공급사\s*(등록|인증|vendor)/gi,                         w: 0.5, label: "공급사 등록" },
+      { pat: /주요\s*(고객|거래처|매출처)/g,                          w: 0.25, label: "주요고객 서술" },
+      { pat: /B2B|기업간\s*거래/g,                                    w: 0.2, label: "B2B 구조" },
+      { pat: /OEM|ODM|외주\s*가공/g,                                  w: 0.3, label: "OEM·ODM" },
+    ],
+    network: [
+      { pat: /네트워크\s*효과/g,                                      w: 1.3, label: "네트워크효과" },
+      { pat: /양면\s*시장|two[\-\s]?sided/gi,                         w: 1.0, label: "양면 시장" },
+      { pat: /플랫폼\s*(사업|서비스|모델|기업)?/g,                    w: 0.6, label: "플랫폼 사업" },
+      { pat: /MAU|DAU|월간\s*활성|일간\s*활성|활성\s*사용자/g,        w: 0.8, label: "활성사용자 지표" },
+      { pat: /(가입자|회원|사용자|유저)\s*수/g,                       w: 0.5, label: "사용자 규모" },
+      { pat: /생태계|에코시스템|eco[\-\s]?system/gi,                  w: 0.4, label: "생태계" },
+      { pat: /커뮤니티/g,                                             w: 0.3, label: "커뮤니티" },
+      { pat: /거래\s*(규모|건수|량)|거래액|GMV/g,                     w: 0.4, label: "거래 규모" },
+      { pat: /데이터\s*(축적|자산|플랫폼)/g,                          w: 0.4, label: "데이터 자산" },
+    ],
+    cost: [
+      { pat: /규모의?\s*경제/g,                                       w: 1.1, label: "규모의 경제" },
+      { pat: /원가\s*(경쟁력|우위|절감|개선|효율)/g,                  w: 0.8, label: "원가경쟁력" },
+      { pat: /수직\s*(계열화|통합)/g,                                 w: 0.8, label: "수직계열화" },
+      { pat: /시장\s*(점유율|지배력|선두)|점유율\s*\d+|\d+위\s*(기업|업체|업계)/g, w: 0.6, label: "시장 점유율" },
+      { pat: /공정\s*(혁신|개선|효율화)/g,                            w: 0.5, label: "공정 혁신" },
+      { pat: /스마트\s*(공장|팩토리)|제조\s*자동화|생산\s*자동화/g,   w: 0.5, label: "생산 자동화" },
+      { pat: /자동화(\s*(시스템|설비))?/g,                            w: 0.3, label: "자동화" },
+      { pat: /생산성\s*(향상|개선|증가|혁신)/g,                       w: 0.4, label: "생산성 향상" },
+      { pat: /저원가|비용\s*절감|코스트\s*다운/g,                     w: 0.5, label: "비용 절감" },
+    ],
+  };
+
+  function rawToMoatScore(raw) {
+    if (raw < 0.5) return 0;
+    if (raw < 2)   return 1;
+    if (raw < 4)   return 2;
+    if (raw < 7)   return 3;
+    if (raw < 12)  return 4;
+    return 5;
+  }
+
+  function autoEvaluateMoat(lines) {
+    const fullText = lines.map(l => l.line).join(" ");
+    const out = {};
+    for (const [key, patterns] of Object.entries(MOAT_KEYWORDS)) {
+      let raw = 0;
+      const hitsByLabel = new Map();
+      for (const { pat, w, label } of patterns) {
+        const matches = fullText.match(pat);
+        if (!matches || matches.length === 0) continue;
+        raw += matches.length * w;
+        hitsByLabel.set(label, (hitsByLabel.get(label) || 0) + matches.length);
+      }
+      const hits = [...hitsByLabel.entries()]
+        .map(([label, count]) => ({ label, count }))
+        .sort((a, b) => b.count - a.count);
+      out[key] = { score: rawToMoatScore(raw), raw: Math.round(raw * 10) / 10, hits };
+    }
+    return out;
+  }
+
+  function renderMoatEvidence(evaluation) {
+    for (const k of MOAT_KEYS) {
+      const card = document.querySelector(`.moat-card[data-key="${k}"]`);
+      if (!card) continue;
+      const el = card.querySelector(".moat-evidence");
+      if (!el) continue;
+      if (!evaluation) { el.classList.add("hidden"); el.innerHTML = ""; continue; }
+      const { hits, raw, score } = evaluation[k];
+      el.classList.remove("hidden");
+      if (hits.length === 0) {
+        el.innerHTML = `<span class="text-slate-400">🤖 보고서 내 유의미한 근거 없음 · ${score}점</span>`;
+      } else {
+        const chips = hits.slice(0, 5).map(h =>
+          `<span class="px-1.5 py-0.5 rounded bg-white border border-slate-200 mono text-slate-700">${h.label} <span class="text-slate-400">×${h.count}</span></span>`
+        ).join("");
+        el.innerHTML =
+          `<span class="text-slate-600 font-semibold whitespace-nowrap">🤖 근거 (가중치 ${raw.toFixed(1)} → ${score}점):</span>` + chips;
+      }
+    }
+  }
+
+  function applyAutoMoat(opts = {}) {
+    const { silent = false } = opts;
+    if (!state.lastPdfLines) return false;
+    const evaluation = autoEvaluateMoat(state.lastPdfLines);
+    for (const k of MOAT_KEYS) state.moats[k] = evaluation[k].score;
+    state.lastMoatEvidence = evaluation;
+    renderMoatEvidence(evaluation);
+    syncMoatUI();
+    updateFinalVerdict();
+    if (!silent) {
+      const total = moatTotal();
+      toast(`사업보고서 기반 해자 자동 평가 완료 · ${total}/20 ✓`, "success");
+    }
+    return true;
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // 해자 상세분석 (사업보고서 해석)
+  //   - B2B/B2C 구분: 납품·수주·관급 vs 소비자·유통 키워드 가중치
+  //   - 연결 자회사: 종속회사/연결대상 섹션 언급 + 회사명 후보 추출
+  //   - 해자별 원문 근거 문장을 페이지 번호와 함께 인용
+  //   - 사업 구조를 반영한 정성적 해석 텍스트 생성
+  // ─────────────────────────────────────────────────────────
+  const B2B_PATS = [
+    { pat: /B2B|기업간\s*거래/gi,                                  w: 1.5, label: "B2B 명시" },
+    { pat: /B2G|대\s*정부/gi,                                      w: 1.3, label: "B2G (대정부)" },
+    { pat: /납품\s*(실적|계약|이력)|주요\s*(거래처|매출처|고객사)/g, w: 1.2, label: "납품·주요거래처" },
+    { pat: /수주|공사\s*수주|공사\s*계약/g,                         w: 1.0, label: "수주 기반" },
+    { pat: /관급|관\s*발주|공공\s*(발주|입찰|공사)|국가계약|조달청/g, w: 1.2, label: "관급·공공발주" },
+    { pat: /도급|하도급|원도급|시공사|시공\s*능력/g,                 w: 1.0, label: "도급·시공" },
+    { pat: /OEM|ODM|외주\s*(가공|생산)/gi,                         w: 0.9, label: "OEM·ODM" },
+    { pat: /부품\s*공급|원재료\s*공급|소재\s*공급/g,                w: 0.7, label: "부품·원재료 공급" },
+    { pat: /장기\s*(공급|거래|납품)\s*계약/g,                        w: 0.9, label: "장기공급계약" },
+  ];
+  const B2C_PATS = [
+    { pat: /B2C|소비자\s*(판매|대상|직판)/gi,                       w: 1.5, label: "B2C 명시" },
+    { pat: /(직영|가맹)\s*(점|매장|대리점)|프랜차이즈/g,              w: 1.1, label: "매장·프랜차이즈" },
+    { pat: /온라인\s*(쇼핑|스토어|판매)|쇼핑몰|이커머스|전자상거래/g, w: 1.1, label: "온라인 리테일" },
+    { pat: /일반\s*소비자|최종\s*소비자|개인\s*고객/g,               w: 1.0, label: "일반소비자" },
+    { pat: /브랜드\s*(인지도|파워|가치|충성도)/g,                    w: 0.8, label: "브랜드 인지도" },
+    { pat: /(앱|어플리케이션)\s*(서비스|이용자|다운로드)|모바일\s*서비스/g, w: 0.8, label: "앱·모바일 서비스" },
+    { pat: /구독\s*(서비스|모델|요금제)/g,                          w: 0.7, label: "구독 모델" },
+    { pat: /고객\s*(경험|만족|리뷰)|CX/g,                           w: 0.5, label: "고객경험" },
+    { pat: /유통망|판매점|판매망|리테일/g,                           w: 0.4, label: "유통망" },
+  ];
+
+  function classifyBusinessType(lines) {
+    const text = lines.map(l => l.line).join("\n");
+    let bScore = 0, cScore = 0;
+    const bHits = [], cHits = [];
+    for (const p of B2B_PATS) {
+      const m = text.match(p.pat);
+      if (m) { bScore += m.length * p.w; bHits.push({ label: p.label, count: m.length, w: p.w }); }
+    }
+    for (const p of B2C_PATS) {
+      const m = text.match(p.pat);
+      if (m) { cScore += m.length * p.w; cHits.push({ label: p.label, count: m.length, w: p.w }); }
+    }
+    const total = bScore + cScore;
+    let type, b2bRatio;
+    if (total < 1) { type = "미분류"; b2bRatio = null; }
+    else {
+      b2bRatio = Math.round((bScore / total) * 100);
+      if (b2bRatio >= 70) type = "B2B 중심";
+      else if (b2bRatio <= 30) type = "B2C 중심";
+      else type = "B2B·B2C 혼합";
+    }
+    return {
+      type,
+      b2bScore: Math.round(bScore * 10) / 10,
+      b2cScore: Math.round(cScore * 10) / 10,
+      b2bRatio,
+      b2bHits: bHits.sort((a,b) => b.count * b.w - a.count * a.w).slice(0, 5),
+      b2cHits: cHits.sort((a,b) => b.count * b.w - a.count * a.w).slice(0, 5),
+    };
+  }
+
+  // 연결 종속회사 감지 (엄격 모드)
+  //   - "연결대상 종속회사" / "종속기업 현황" 등 진짜 자회사 섹션만 트리거
+  //     (계열회사·관계기업·주주현황·차입금 섹션은 제외)
+  //   - 섹션 내에서 지분율·출자·소유주식 등 '지배 관계' 시그널이 있는 라인에서만 회사명 추출
+  //   - 은행/보험/증권/보증 등 금융 거래처 및 단위 표기 "(주)" 오인 매칭 필터
+  //   - 자사 본인 이름 제외
+  function detectSubsidiaries(lines, selfName = "") {
+    // 엄격 섹션 헤더: 진짜 종속회사 공시에만 매칭
+    const strictHeader = /연결\s*대상\s*(종속\s*(회사|기업))|타법인\s*출자\s*현황|종속\s*기업\s*(투자|의\s*(현황|개요|명세))|종속\s*회사\s*(의\s*(현황|개요|명세))|해외\s*현지\s*법인\s*현황|연결\s*종속\s*회사\s*(현황|개요)/;
+    // 섹션 종료 시그널 (헤더 직후에 걸리면 창 조기 종료)
+    const sectionEndRE = /(주주\s*(현황|명세)|임원\s*현황|차입금\s*(현황|내역)|계열\s*회사의?\s*현황|관계\s*회사|공시대상\s*회사|주요\s*거래처|배당\s*현황|부채의?\s*현황|담보\s*제공)/;
+    // 금융 거래처 (종속회사가 아닐 확률 매우 높음)
+    const counterpartyRE = /은행|보험|증권|신용|저축|투자신탁|자산운용|보증|신탁|생명|화재|캐피탈|카드|신협|새마을|금고|펀드|저축은행/;
+    // 오인 매칭용 단위·행말 표기: "소유주식수(주)", "보유주식(주)", "자본금(주)" 등
+    const unitLikeRE = /(?:주식\s*수|주식수|소유\s*주식|보유\s*주식|발행\s*주식|자본금|주주|배당금|금액|원|수량|주수|율|량)\s*\(\s*주\s*\)/;
+    // 지배관계 시그널 (지분율/출자 관련 표현이 같은 줄에 있을 것)
+    const ownershipSignalRE = /\d+(?:\.\d+)?\s*%|출자\s*(지분|비율|금액|총액|좌수)|지분\s*율|소유\s*주식\s*수|보유\s*주식\s*수|소유\s*비율|의결권|최대\s*주주|연결\s*범위|\d+\s*주\s*\(.*\s*%/;
+
+    const normalize = s => String(s || "").replace(/[\s\(\)]|\(주\)|주식회사|Co\.?,?\s*Ltd\.?|Inc\.?|Corp\.?/gi, "");
+    const selfNorm = normalize(selfName);
+
+    // 1패스: 엄격 섹션 존재 여부 확인
+    const hasStrictHeader = lines.some(l => strictHeader.test(l.line));
+
+    const quotes = [];
+    const nameCandidates = new Map();  // 회사명 → 출현 횟수
+    let windowN = 0;
+
+    if (hasStrictHeader) {
+      for (const { page, line } of lines) {
+        // 섹션 진입
+        if (strictHeader.test(line)) {
+          windowN = 18;
+          quotes.push({ page, line });
+          continue;
+        }
+        if (windowN <= 0) continue;
+        // 다른 섹션 헤더 만나면 창 조기 종료
+        if (sectionEndRE.test(line) && windowN < 16) { windowN = 0; continue; }
+        windowN--;
+        if (line.length >= 4 && quotes.length < 10) quotes.push({ page, line });
+        // 단위 표기 라인은 스킵
+        if (unitLikeRE.test(line)) continue;
+        // 지배관계 시그널이 같은 줄에 없으면 회사명 추출하지 않음
+        if (!ownershipSignalRE.test(line)) continue;
+
+        // 회사명 후보 (사전처리: 단위 (주) 제거)
+        const cleaned = line.replace(unitLikeRE, " ");
+        const nameMatches = cleaned.match(
+          /\(\s*주\s*\)\s*[가-힣A-Za-z][가-힣A-Za-z0-9·&\-]{1,19}|[가-힣A-Za-z][가-힣A-Za-z0-9·&\-]{1,19}\s*\(\s*주\s*\)|[가-힣A-Za-z][가-힣A-Za-z0-9·&\-]{2,29}\s*주식회사|[A-Z][A-Za-z0-9 &.,\-]{2,30}\s*(?:Co\.?\s*,?\s*Ltd\.?|Inc\.?|Corp\.?|GmbH|S\.A\.?|SRL|LLC)/g
+        );
+        if (!nameMatches) continue;
+
+        for (const raw of nameMatches) {
+          const name = raw.trim().replace(/\s+/g, " ");
+          if (name.length < 4) continue;
+          if (counterpartyRE.test(name)) continue;       // 은행·보험·증권 등 제외
+          // 자주 나오는 false-positive 라벨 제외
+          if (/^(주식회사|회사|회사명|사업자|소유주식|주주|임원|기타|외|합계|소계|자본금|출자금|비고|구분|종목명|연결회사는|당사는|관계회사|계열회사)/.test(name)) continue;
+          if (/^\(\s*주\s*\)$/.test(name)) continue;
+          // 자사 본인 제외
+          if (selfNorm && selfNorm.length >= 2 && normalize(name).includes(selfNorm)) continue;
+          nameCandidates.set(name, (nameCandidates.get(name) || 0) + 1);
+        }
+      }
+    }
+
+    const names = [...nameCandidates.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([n]) => n);
+
+    return {
+      has: names.length > 0,                   // 이름 후보가 실제로 잡혔을 때만 "있음"
+      headerSeen: hasStrictHeader,             // 섹션 헤더 자체는 있었는지 (디버깅/안내용)
+      count: names.length,
+      names: names.slice(0, 12),
+      quotes: quotes.slice(0, 10),
+      _selfName: selfName,
+    };
+  }
+
+  function collectMoatSentences(key, lines) {
+    const patterns = MOAT_KEYWORDS[key] || [];
+    const out = [];
+    const seen = new Set();
+    for (const { page, line } of lines) {
+      let matchedLabels = [];
+      let maxW = 0;
+      for (const { pat, w, label } of patterns) {
+        const re = new RegExp(pat.source, pat.flags);   // 안전한 사본 (lastIndex 격리)
+        if (re.test(line)) {
+          matchedLabels.push(label);
+          if (w > maxW) maxW = w;
+        }
+      }
+      if (matchedLabels.length === 0) continue;
+      const k = page + "|" + line;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push({ page, line, labels: [...new Set(matchedLabels)], weight: maxW });
+    }
+    out.sort((a,b) => b.weight - a.weight || a.page - b.page);
+    return out;
+  }
+
+  // 해자별 + 사업유형별 맞춤 해석 (자회사 여부도 반영)
+  function interpretMoat(key, score, biz, subs, sentenceCount) {
+    const isB2B = biz.type === "B2B 중심" || biz.type === "B2B·B2C 혼합";
+    const isB2C = biz.type === "B2C 중심" || biz.type === "B2B·B2C 혼합";
+    const strong = score >= 4, weak = score <= 1;
+    const parts = [];
+
+    if (key === "intangible") {
+      if (biz.type === "B2B 중심") {
+        parts.push("B2B 구조에서는 소비자 브랜드보다 <b>정부 인가·면허·특허·ISO/KS 인증</b>이 실질적 진입장벽으로 작용합니다. 따라서 본 항목은 규제·자격 기반 무형자산 중심으로 해석해야 합니다.");
+      } else if (biz.type === "B2C 중심") {
+        parts.push("B2C 구조에서는 <b>브랜드 파워·상표권</b>이 가격 결정권의 핵심 원천입니다. 반복 구매와 가격 전가력이 있다면 해자가 강합니다.");
+      } else if (biz.type === "B2B·B2C 혼합") {
+        parts.push("B2B·B2C가 혼합되어 있어 <b>규제성 자격(B2B)</b>과 <b>브랜드(B2C)</b> 두 축을 함께 볼 필요가 있습니다.");
+      } else {
+        parts.push("사업 유형 단서가 부족하여 무형자산의 성격(브랜드 vs 규제 자격)을 보고서 원문으로 직접 확인해야 합니다.");
+      }
+      if (strong) parts.push("보고서 내 특허·인증·독점·면허 관련 언급이 다수 확인되어 <b>무형자산 해자가 뚜렷한 편</b>입니다.");
+      else if (weak) parts.push("무형자산 관련 근거가 빈약합니다. 일반적 업종 인증 이상의 차별적 자산을 보고서에서 찾기 어렵습니다.");
+    }
+
+    if (key === "switching") {
+      if (biz.type === "B2B 중심") {
+        parts.push("B2B 구조에서는 <b>장기 공급계약·벤더 등록·납품 레퍼런스</b> 자체가 강력한 전환비용입니다. 교체 시 품질 재검증·공급망 재구성 부담이 큽니다.");
+      } else if (biz.type === "B2C 중심") {
+        parts.push("B2C에서 전환비용은 <b>사용자 학습비용·구독 락인·데이터 종속</b>에서 발생합니다. 단순 브랜드 선호는 전환비용이 아닙니다.");
+      } else if (biz.type === "B2B·B2C 혼합") {
+        parts.push("B2B 채널의 레퍼런스형 전환비용과 B2C 채널의 사용자 습관형 전환비용을 분리해 평가해야 합니다.");
+      }
+      if (strong) parts.push("장기 계약·유지보수·핵심 거래처 고착 관련 언급이 풍부하여 <b>전환비용 해자가 실재</b>할 가능성이 높습니다.");
+      else if (weak) parts.push("전환비용 근거가 적어, 경쟁사 제품으로 교체 시 기술적·계약적 저항이 크지 않을 수 있습니다.");
+      if (isB2B && biz.b2bHits.find(h => /관급|공공/.test(h.label))) {
+        parts.push("관급·공공 발주 비중이 있다면 <i>입찰 기반</i> 재경쟁이 주기적으로 발생하므로, 외견상 전환비용 점수에 비해 실질 고착은 약할 수 있습니다.");
+      }
+    }
+
+    if (key === "network") {
+      if (biz.type === "B2B 중심") {
+        parts.push("B2B 공급·시공 구조에서는 <b>네트워크 효과가 원천적으로 약합니다</b>. 사용자 수가 늘어도 다른 사용자의 효용이 커지는 구조가 아니기 때문입니다.");
+        if (score >= 2) parts.push("점수가 나와도 이는 '플랫폼·사용자' 키워드가 다른 맥락(예: 공급망·파트너사)에서 등장했을 가능성이 큽니다. 실제 양면 시장 여부를 원문에서 확인하세요.");
+      } else if (biz.type === "B2C 중심") {
+        parts.push("B2C 플랫폼·서비스라면 네트워크 효과가 <b>본질적 해자</b>가 될 수 있습니다. MAU·거래액·양면 시장 지표로 확인하세요.");
+      } else if (biz.type === "B2B·B2C 혼합") {
+        parts.push("혼합 구조에서는 B2C 측 사용자 기반이 네트워크 효과의 실질 동력입니다. B2B 채널에서의 '네트워크' 언급은 할인해서 해석하세요.");
+      }
+      if (weak) parts.push("사용자 수·양면 시장·거래 규모 등 네트워크 효과의 직접 증거가 없습니다.");
+    }
+
+    if (key === "cost") {
+      if (biz.type === "B2B 중심") {
+        parts.push("B2B에서는 <b>규모의 경제·수직계열화·공정 혁신</b>이 원가 우위의 핵심입니다. 특히 장치 산업에서는 고정비 분산 효과가 큽니다.");
+      } else if (biz.type === "B2C 중심") {
+        parts.push("B2C에서는 <b>대량 구매 교섭력·물류 효율·직영 생산</b>이 원가 우위의 근거가 됩니다 (월마트·코스트코 모델).");
+      } else if (biz.type === "B2B·B2C 혼합") {
+        parts.push("혼합 구조에서는 B2B 제조 단계의 규모 경제가 B2C 최종가에 얼마나 전가되는지 확인해야 합니다.");
+      }
+      if (strong) parts.push("시장 점유율·규모의 경제·자동화·수직계열화 관련 언급이 충분하여 <b>원가 해자 가능성</b>이 있습니다.");
+      else if (weak) parts.push("원가 경쟁력에 관한 명시적 언급이 부족합니다. 동종업계 평균 수준일 가능성이 큽니다.");
+    }
+
+    // 연결 자회사 영향
+    if (subs.has) {
+      if (key === "network" || key === "cost") {
+        parts.push(`📎 <b>연결 종속회사</b>가 확인됩니다${subs.count ? ` (명시된 회사명 ${subs.count}개 후보)` : ""}. 자회사 사업영역이 본사업과 수직/수평으로 결합되어 있다면 <b>${key === "cost" ? "규모의 경제 + 수직계열화" : "플랫폼 확장·데이터 공유"}</b>를 통해 해자를 강화할 수 있습니다. 보고서의 '사업의 내용 — 연결 종속회사' 섹션을 함께 확인하세요.`);
+      } else {
+        parts.push(`📎 연결 종속회사 보유${subs.count ? ` (${subs.count}개 후보)` : ""}. 자회사가 관련 ${key === "intangible" ? "특허·라이선스" : "장기계약·고객자산"}을 보유하는지 '사업의 내용' 섹션에서 교차 확인이 필요합니다.`);
+      }
+    } else {
+      parts.push("연결 종속회사 단서가 뚜렷하지 않아 <b>단독 사업 기준</b>의 해자로 보입니다.");
+    }
+
+    if (sentenceCount === 0) parts.push("⚠️ 이 해자 항목에 대한 보고서 내 직접 근거 문장이 발견되지 않았습니다.");
+
+    return parts;
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+  }
+
+  function highlightLine(line, key) {
+    const patterns = MOAT_KEYWORDS[key] || [];
+    let out = escHtml(line);
+    const marks = [];
+    for (const { pat } of patterns) {
+      const re = new RegExp(pat.source, pat.flags.includes("g") ? pat.flags : pat.flags + "g");
+      let m;
+      while ((m = re.exec(line)) !== null) {
+        marks.push({ start: m.index, end: m.index + m[0].length, text: m[0] });
+        if (m.index === re.lastIndex) re.lastIndex++;
+      }
+    }
+    if (marks.length === 0) return out;
+    // 오버랩 제거 (시작 위치 기준 정렬 후 겹치는 구간 병합)
+    marks.sort((a,b) => a.start - b.start);
+    const merged = [];
+    for (const m of marks) {
+      const last = merged[merged.length - 1];
+      if (last && m.start <= last.end) last.end = Math.max(last.end, m.end);
+      else merged.push({ start: m.start, end: m.end });
+    }
+    let result = "";
+    let cur = 0;
+    for (const { start, end } of merged) {
+      result += escHtml(line.slice(cur, start));
+      result += `<mark class="bg-amber-200 text-slate-900 rounded px-0.5">${escHtml(line.slice(start, end))}</mark>`;
+      cur = end;
+    }
+    result += escHtml(line.slice(cur));
+    return result;
+  }
+
+  const MOAT_META = {
+    intangible: { title: "① 무형 자산",     icon: "🏷️", desc: "브랜드·특허·라이선스·정부 인가 등 복제 불가 자산" },
+    switching:  { title: "② 전환 비용",     icon: "🔒", desc: "고객이 경쟁사로 이동할 때 부담하는 비용·심리적 저항" },
+    network:    { title: "③ 네트워크 효과", icon: "🌐", desc: "사용자 증가에 따라 서비스 가치가 기하급수적으로 커지는 구조" },
+    cost:       { title: "④ 원가 우위",     icon: "⚙️", desc: "규모의 경제·공정 혁신·수직계열화로 확보되는 구조적 저원가" },
+  };
+
+  function openMoatDetail(key) {
+    const modal = $("moatDetailModal");
+    const body  = $("moatDetailBody");
+    const title = $("moatDetailTitle");
+    const sub   = $("moatDetailSubtitle");
+    const meta  = MOAT_META[key];
+    if (!meta) return;
+
+    if (!state.lastPdfLines) {
+      title.textContent = `${meta.icon} ${meta.title}`;
+      sub.textContent   = "사업보고서 업로드 필요";
+      body.innerHTML    = `<div class="p-8 text-center text-slate-500 text-sm">사업보고서 PDF를 먼저 업로드해 주세요.<br>업로드 후 해당 해자의 원문 근거와 해석을 볼 수 있습니다.</div>`;
+      modal.classList.remove("hidden");
+      modal.style.display = "flex";
+      return;
+    }
+
+    // 컨텍스트 캐시 구축 (해자 자동 평가, B2B/B2C 분류, 자회사 감지)
+    const selfName = inputs.name.value.trim();
+    if (!state.lastMoatEvidence) state.lastMoatEvidence = autoEvaluateMoat(state.lastPdfLines);
+    if (!state.lastBizContext)   state.lastBizContext   = classifyBusinessType(state.lastPdfLines);
+    if (!state.lastSubsContext || state.lastSubsContext._selfName !== selfName)
+      state.lastSubsContext = detectSubsidiaries(state.lastPdfLines, selfName);
+
+    const biz  = state.lastBizContext;
+    const subs = state.lastSubsContext;
+    const ev   = state.lastMoatEvidence[key];
+    const score = ev.score;
+    const sentences = collectMoatSentences(key, state.lastPdfLines);
+    const narrative = interpretMoat(key, score, biz, subs, sentences.length);
+
+    title.textContent = `${meta.icon} ${meta.title} · 사업보고서 해석`;
+    sub.textContent   = `${meta.desc} · 자동 점수 ${score}/5 (가중치 ${ev.raw})`;
+
+    const bizBadgeCls =
+      biz.type === "B2B 중심"    ? "bg-sky-100 text-sky-800 border-sky-200" :
+      biz.type === "B2C 중심"    ? "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200" :
+      biz.type === "B2B·B2C 혼합" ? "bg-indigo-100 text-indigo-800 border-indigo-200" :
+                                    "bg-slate-100 text-slate-600 border-slate-200";
+
+    const scoreBadgeCls =
+      score >= 4 ? "bg-emerald-100 text-emerald-800 border-emerald-200" :
+      score >= 2 ? "bg-amber-100 text-amber-800 border-amber-200" :
+      score > 0  ? "bg-rose-100 text-rose-800 border-rose-200" :
+                   "bg-slate-100 text-slate-500 border-slate-200";
+
+    const hitChips = (hits) => hits.length === 0
+      ? `<span class="text-slate-400 text-xs">— 없음</span>`
+      : hits.map(h => `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white border border-slate-200 mono text-[11px] text-slate-700">${escHtml(h.label)} <span class="text-slate-400">×${h.count}</span></span>`).join(" ");
+
+    const shownSentences = sentences.slice(0, 8);
+    const sentencesHtml = shownSentences.length === 0
+      ? `<div class="text-slate-400 text-xs px-3 py-4 text-center border border-dashed border-slate-200 rounded-lg bg-white">이 해자와 연관된 직접 근거 문장을 찾지 못했습니다.</div>`
+      : shownSentences.map(s => `
+          <div class="bg-white border border-slate-200 rounded-lg p-3">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <div class="flex flex-wrap gap-1">${s.labels.map(l => `<span class="text-[10px] mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">${escHtml(l)}</span>`).join("")}</div>
+              <span class="text-[10px] mono text-slate-400 flex-shrink-0">p${s.page}</span>
+            </div>
+            <div class="text-[12px] leading-relaxed text-slate-700">${highlightLine(s.line, key)}</div>
+          </div>
+        `).join("");
+
+    const subsSectionHtml = subs.has
+      ? `<div class="text-[12px] text-slate-700 leading-relaxed">
+          연결 종속회사로 추정되는 회사명이 확인되었습니다 · <b>${subs.count}개</b>
+          <span class="text-[10px] text-slate-400">(지분율·출자 시그널 동시 확인)</span>
+          ${subs.names.length
+            ? `<div class="mt-2 flex flex-wrap gap-1">${subs.names.slice(0, 10).map(n => `<span class="text-[11px] mono px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-700">${escHtml(n)}</span>`).join("")}</div>`
+            : ""}
+          ${subs.quotes.length
+            ? `<details class="mt-2"><summary class="text-[11px] text-slate-500 cursor-pointer hover:text-slate-800">원문 인용 보기 (${subs.quotes.length}줄)</summary>
+                 <div class="mt-1.5 space-y-1 text-[11px] text-slate-600 mono bg-white border border-slate-200 rounded-md p-2 max-h-40 overflow-y-auto">
+                   ${subs.quotes.map(q => `<div><span class="text-slate-400">p${q.page}</span> ${escHtml(q.line)}</div>`).join("")}
+                 </div>
+               </details>`
+            : ""}
+          <div class="mt-2 text-[10px] text-slate-400 leading-relaxed">⚠️ 자동 추출 결과이므로 DART 원문의 "연결대상 종속회사" 섹션을 직접 확인해 주세요. 거래처·주주·차입처 등이 혼입되었다면 위 목록을 무시하세요.</div>
+         </div>`
+      : subs.headerSeen
+        ? `<div class="text-[12px] text-slate-600">"연결대상 종속회사" 섹션 헤더는 확인되지만, 지분율·출자 시그널이 동반된 회사명이 감지되지 않았습니다. <b>종속회사 없음 또는 공시 미기재</b>로 해석됩니다.</div>`
+        : `<div class="text-[12px] text-slate-500">연결 종속회사 관련 뚜렷한 단서가 없습니다. <b>단독 재무 기준</b>으로 해자를 해석합니다.</div>`;
+
+    body.innerHTML = `
+      <!-- 판단 요약 -->
+      <section class="bg-white border border-slate-200 rounded-xl p-4">
+        <div class="flex items-center justify-between gap-3 mb-2 flex-wrap">
+          <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">판단 요약</div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[11px] px-2 py-0.5 rounded border font-semibold ${bizBadgeCls}">${escHtml(biz.type)}${biz.b2bRatio != null ? ` · B2B ${biz.b2bRatio}%` : ""}</span>
+            <span class="text-[11px] px-2 py-0.5 rounded border font-semibold ${scoreBadgeCls}">해자 점수 ${score}/5</span>
+            <span class="text-[11px] px-2 py-0.5 rounded border font-semibold ${subs.has ? "bg-violet-100 text-violet-800 border-violet-200" : "bg-slate-100 text-slate-500 border-slate-200"}">${subs.has ? "연결 자회사 있음" : "단독 기준"}</span>
+          </div>
+        </div>
+        <ul class="list-disc pl-5 space-y-1.5 text-[13px] leading-relaxed text-slate-800">
+          ${narrative.map(p => `<li>${p}</li>`).join("")}
+        </ul>
+      </section>
+
+      <!-- 사업 구조 (B2B/B2C) -->
+      <section class="bg-white border border-slate-200 rounded-xl p-4">
+        <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2">사업 구조 분류 (B2B / B2C)</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="rounded-lg border border-sky-200 bg-sky-50/50 p-3">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[11px] font-bold text-sky-800">B2B 근거</span>
+              <span class="text-[11px] mono text-sky-700">가중치 ${biz.b2bScore}</span>
+            </div>
+            <div class="flex flex-wrap gap-1">${hitChips(biz.b2bHits)}</div>
+          </div>
+          <div class="rounded-lg border border-fuchsia-200 bg-fuchsia-50/50 p-3">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[11px] font-bold text-fuchsia-800">B2C 근거</span>
+              <span class="text-[11px] mono text-fuchsia-700">가중치 ${biz.b2cScore}</span>
+            </div>
+            <div class="flex flex-wrap gap-1">${hitChips(biz.b2cHits)}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 연결 종속회사 -->
+      <section class="bg-white border border-slate-200 rounded-xl p-4">
+        <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2">연결 종속회사 영향</div>
+        ${subsSectionHtml}
+      </section>
+
+      <!-- 사업보고서 원문 근거 -->
+      <section class="bg-white border border-slate-200 rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">사업보고서 원문 근거</div>
+          <div class="text-[10px] mono text-slate-400">총 ${sentences.length}건 중 상위 ${shownSentences.length}건 표시</div>
+        </div>
+        <div class="space-y-2">${sentencesHtml}</div>
+      </section>
+
+      <!-- 주의 -->
+      <div class="text-[11px] text-slate-500 leading-relaxed px-1">
+        ⚠️ 이 분석은 사업보고서 텍스트의 <b>키워드 기반 자동 추출</b>입니다. 도표·이미지 내 정보는 반영되지 않을 수 있으며, 최종 투자 판단 전에는 원문을 직접 확인하시기 바랍니다.
+      </div>
+    `;
+
+    modal.classList.remove("hidden");
+    modal.style.display = "flex";
+  }
+
+  function closeMoatDetail() {
+    const m = $("moatDetailModal");
+    m.classList.add("hidden");
+    m.style.display = "none";
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // LLM 설정 + AI 해자 분석
+  //   - API Key는 브라우저 localStorage에만 저장 (서버 전송 없음)
+  //   - 'Ⅱ. 사업의 내용' 섹션을 LLM에 전달, 5대 해자 JSON 응답 파싱
+  //   - 응답으로 4개 카드 점수 업데이트 + 5대 해자 정성 분석 패널 렌더링
+  // ─────────────────────────────────────────────────────────
+  const SETTINGS_KEY = "vi_llm_settings_v1";
+  const DEFAULT_MODELS = { anthropic: "claude-sonnet-4-6", openai: "gpt-4o" };
+
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (!raw) return { provider: "anthropic", model: "", apiKey: "" };
+      const s = JSON.parse(raw);
+      return { provider: s.provider || "anthropic", model: s.model || "", apiKey: s.apiKey || "" };
+    } catch { return { provider: "anthropic", model: "", apiKey: "" }; }
+  }
+  function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+  function clearSettings() { localStorage.removeItem(SETTINGS_KEY); }
+
+  function openSettings() {
+    const s = loadSettings();
+    $("llmProvider").value = s.provider || "anthropic";
+    $("llmModel").value = s.model || "";
+    $("llmApiKey").value = s.apiKey || "";
+    $("llmApiKey").type = "password";
+    $("toggleApiKeyBtn").textContent = "표시";
+    $("settingsStatus").textContent = s.apiKey ? "✓ 저장된 설정 로드됨" : "";
+    $("settingsStatus").className = "text-[11px] text-center " + (s.apiKey ? "text-emerald-600" : "text-slate-500");
+    updateModelHint();
+    const m = $("settingsModal");
+    m.classList.remove("hidden");
+    m.style.display = "flex";
+  }
+  function closeSettings() {
+    const m = $("settingsModal");
+    m.classList.add("hidden");
+    m.style.display = "none";
+  }
+  function updateModelHint() {
+    const p = $("llmProvider").value;
+    const def = DEFAULT_MODELS[p];
+    $("llmModel").placeholder = def;
+    const hint = $("llmModelHint");
+    if (p === "anthropic") hint.innerHTML = `기본: <span class="mono">${def}</span> · 예: <span class="mono">claude-sonnet-4-6</span>, <span class="mono">claude-opus-4-6</span>, <span class="mono">claude-haiku-4-5-20251001</span>`;
+    else hint.innerHTML = `기본: <span class="mono">${def}</span> · 예: <span class="mono">gpt-4o</span>, <span class="mono">gpt-4o-mini</span>, <span class="mono">gpt-4-turbo</span>`;
+  }
+
+  // 'Ⅱ. 사업의 내용' 섹션 추출 (로마자/숫자/공백 다양한 표기 허용)
+  function extractBusinessSection(lines) {
+    const startPats = [
+      /(^|\s)(Ⅱ|II|2|\(2\))\s*[\.\)]?\s*사업의?\s*내용/,
+      /^\s*사업의?\s*내용\s*$/,
+    ];
+    const endPats = [
+      /(^|\s)(Ⅲ|III|3|\(3\))\s*[\.\)]?\s*재무에?\s*관한?\s*사항/,
+      /(^|\s)(Ⅲ|III|3|\(3\))\s*[\.\)]?\s*재무제표/,
+    ];
+    let start = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (startPats.some(p => p.test(lines[i].line))) { start = i; break; }
+    }
+    if (start < 0) return null;
+    let end = lines.length;
+    for (let i = start + 5; i < lines.length; i++) {
+      if (endPats.some(p => p.test(lines[i].line))) { end = i; break; }
+    }
+    // 합치고 토큰 예산 내로 트림 (한글 ~3char/token 기준 약 25000자 = 8~9K tokens)
+    const MAX_CHARS = 25000;
+    let text = lines.slice(start, end).map(l => l.line).join("\n");
+    if (text.length > MAX_CHARS) text = text.slice(0, MAX_CHARS) + "\n[...이하 생략]";
+    return { text, startPage: lines[start].page, endPage: lines[Math.min(end - 1, lines.length - 1)].page, charCount: text.length };
+  }
+
+  async function callLLM({ provider, model, apiKey, system, user, maxTokens = 3000 }) {
+    if (provider === "anthropic") {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model, max_tokens: maxTokens, system,
+          messages: [{ role: "user", content: user }],
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Anthropic ${res.status}: ${body.slice(0, 300)}`);
+      }
+      const data = await res.json();
+      const block = (data.content || []).find(b => b.type === "text");
+      return block?.text || "";
+    }
+    if (provider === "openai") {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model, max_tokens: maxTokens,
+          messages: [{ role: "system", content: system }, { role: "user", content: user }],
+          response_format: { type: "json_object" },
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`OpenAI ${res.status}: ${body.slice(0, 300)}`);
+      }
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || "";
+    }
+    throw new Error(`알 수 없는 provider: ${provider}`);
+  }
+
+  function buildMoatPrompt(sectionText, companyName, biz, subs, parsed) {
+    const system = `당신은 가치투자 관점에서 한국 기업의 경제적 해자(Economic Moat)를 분석하는 전문가입니다. Pat Dorsey의 "The Little Book That Builds Wealth"에 나오는 5대 해자(Intangible Assets, Switching Costs, Network Effect, Cost Advantage, Efficient Scale) 프레임을 사용하며, 반드시 제공된 사업보고서 원문 근거에 기반합니다. 한국어로 답변하며, 반드시 지정된 JSON 스키마만 반환합니다 (설명 문장·주석·코드펜스·마크다운 금지, 순수 JSON만).`;
+
+    const bizLine = `- 사업 유형: ${biz?.type || "미분류"}${biz?.b2bRatio != null ? ` (B2B 비중 ${biz.b2bRatio}%)` : ""}`;
+    const subsLine = `- 연결 자회사: ${subs?.has ? `있음${subs.count ? ` · 회사명 후보 ${subs.count}개: ${(subs.names || []).slice(0,5).join(", ")}` : ""}` : "단서 없음 (단독 기준)"}`;
+    const scopeLine = parsed?.appliedScope === "consolidated" ? "- 재무 기준: 연결재무제표 적용" :
+                      parsed?.appliedScope === "standalone"   ? "- 재무 기준: 별도재무제표 적용 (연결 데이터 미확인)" : "";
+
+    const user = `다음은 "${companyName || "해당 기업"}"의 사업보고서 "Ⅱ. 사업의 내용" 섹션 발췌입니다.
+
+【기업 개요 (사전 분석)】
+${bizLine}
+${subsLine}
+${scopeLine}
+
+【사업보고서 본문 (Ⅱ. 사업의 내용 발췌)】
+${sectionText}
+
+【지시사항】
+위 내용을 근거로 Pat Dorsey의 5대 경제적 해자 각각에 대해 0~5점 정수 점수와 근거 요약을 제시하세요.
+
+반드시 아래 JSON 스키마 그대로 응답하세요 (다른 텍스트 절대 금지):
+{
+  "intangible":     { "score": <0-5 정수>, "summary": "<2-3문장 한국어>", "evidence": ["<본문 발췌 1>", "<본문 발췌 2>", "..."] },
+  "switching":      { "score": <0-5 정수>, "summary": "...", "evidence": ["..."] },
+  "network":        { "score": <0-5 정수>, "summary": "...", "evidence": ["..."] },
+  "cost":           { "score": <0-5 정수>, "summary": "...", "evidence": ["..."] },
+  "efficientScale": { "score": <0-5 정수>, "summary": "...", "evidence": ["..."] },
+  "overall": "<전체 해자 종합 평가, B2B/B2C 구조 및 연결 자회사 영향 반영, 3-4문장>"
+}
+
+【평가 기준】
+- 0점: 근거 없음 / 1점: 약함 / 2-3점: 보통 / 4-5점: 강함
+- evidence는 반드시 제공된 본문에서 발췌한 실제 표현이어야 하며, 상상·추정 금지.
+- B2B 기업의 네트워크 효과는 원천적으로 약한 경우가 많으므로 엄격히 평가.
+- 효율적 규모(efficientScale): 시장이 한정된 규모여서 소수 사업자만 생존 가능한 구조 (공항, 유틸리티, 파이프라인 등).
+- 연결 자회사가 있으면 그 사업의 해자 기여도를 summary에 반영.
+- 본문에 직접 근거가 없으면 solid하게 "근거 부족"이라고 기록.`;
+
+    return { system, user };
+  }
+
+  function parseAiMoatResponse(text) {
+    // 코드펜스 제거
+    let t = text.trim();
+    t = t.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+    // JSON 객체 추출
+    const match = t.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("응답에서 JSON을 찾을 수 없습니다");
+    const obj = JSON.parse(match[0]);
+    // 스키마 정규화
+    const norm = {};
+    for (const k of ["intangible", "switching", "network", "cost", "efficientScale"]) {
+      const r = obj[k] || {};
+      norm[k] = {
+        score: Math.max(0, Math.min(5, Math.round(Number(r.score) || 0))),
+        summary: String(r.summary || "").trim(),
+        evidence: Array.isArray(r.evidence) ? r.evidence.map(e => String(e).trim()).filter(Boolean).slice(0, 6) : [],
+      };
+    }
+    norm.overall = String(obj.overall || "").trim();
+    return norm;
+  }
+
+  async function runAiMoatAnalysis() {
+    const settings = loadSettings();
+    if (!settings.apiKey) {
+      toast("⚙️ 설정에서 API Key를 먼저 입력하세요", "error");
+      openSettings();
+      return;
+    }
+    if (!state.lastPdfLines) {
+      toast("먼저 사업보고서 PDF를 업로드하세요", "error");
+      return;
+    }
+
+    const btn = $("aiMoatBtn");
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = "⏳ 분석 중...";
+
+    try {
+      const section = extractBusinessSection(state.lastPdfLines);
+      if (!section) throw new Error("'Ⅱ. 사업의 내용' 섹션을 찾을 수 없습니다");
+
+      const selfName = inputs.name.value.trim();
+      if (!state.lastBizContext)  state.lastBizContext  = classifyBusinessType(state.lastPdfLines);
+      if (!state.lastSubsContext || state.lastSubsContext._selfName !== selfName)
+        state.lastSubsContext = detectSubsidiaries(state.lastPdfLines, selfName);
+
+      const { system, user } = buildMoatPrompt(section.text, selfName, state.lastBizContext, state.lastSubsContext, state.lastParsed);
+
+      toast(`✨ LLM 호출 중... (${settings.provider === "anthropic" ? "Claude" : "OpenAI"})`, "");
+
+      const response = await callLLM({
+        provider: settings.provider,
+        model: settings.model || DEFAULT_MODELS[settings.provider],
+        apiKey: settings.apiKey,
+        system, user, maxTokens: 3500,
+      });
+
+      const parsed = parseAiMoatResponse(response);
+      state.aiMoatResult = parsed;
+
+      // 4개 해자 카드 점수 업데이트 (5번째 효율적 규모는 패널에만 표시)
+      for (const k of MOAT_KEYS) {
+        if (parsed[k] && Number.isInteger(parsed[k].score)) {
+          state.moats[k] = parsed[k].score;
+        }
+      }
+      syncMoatUI();
+      renderAiMoatPanel(parsed, settings, section);
+      updateFinalVerdict();
+      toast(`✨ AI 해자 분석 완료 · 총 ${moatTotal()}/20`, "success");
+    } catch (err) {
+      console.error(err);
+      toast(`AI 분석 실패: ${err.message || err}`, "error");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
+
+  function renderAiMoatPanel(result, settings, section) {
+    const panel = $("aiMoatPanel");
+    const meta = $("aiMoatMeta");
+    const body = $("aiMoatBody");
+    const providerLabel = settings.provider === "anthropic" ? "Claude" : "OpenAI";
+    const modelLabel = settings.model || DEFAULT_MODELS[settings.provider];
+    meta.textContent = `${providerLabel} · ${modelLabel} · 분석 소스: p${section.startPage}-${section.endPage} (${section.charCount.toLocaleString()}자) · ${new Date().toLocaleString("ko-KR")}`;
+
+    const items = [
+      { k: "intangible",     t: "🏷️ ① 무형 자산",     updated: true },
+      { k: "switching",      t: "🔒 ② 전환 비용",     updated: true },
+      { k: "network",        t: "🌐 ③ 네트워크 효과", updated: true },
+      { k: "cost",           t: "⚙️ ④ 원가 우위",     updated: true },
+      { k: "efficientScale", t: "📏 ⑤ 효율적 규모",   updated: false },
+    ];
+
+    const scoreBadge = (score) =>
+      score >= 4 ? "bg-emerald-100 text-emerald-800 border-emerald-200" :
+      score >= 2 ? "bg-amber-100 text-amber-800 border-amber-200" :
+      score > 0  ? "bg-rose-100 text-rose-800 border-rose-200" :
+                   "bg-slate-100 text-slate-500 border-slate-200";
+
+    const rowsHtml = items.map(({ k, t, updated }) => {
+      const r = result[k];
+      if (!r) return `<div class="bg-white border border-slate-200 rounded-lg p-3"><div class="font-semibold text-sm">${t}</div><div class="text-[11px] text-slate-400 mt-1">분석 실패 · 응답 누락</div></div>`;
+      const evHtml = (r.evidence || []).length
+        ? `<ul class="mt-2 list-disc pl-5 space-y-0.5">${r.evidence.slice(0, 5).map(e => `<li class="text-[11px] text-slate-600 leading-relaxed">"${escHtml(e)}"</li>`).join("")}</ul>`
+        : "";
+      return `
+        <div class="bg-white border border-indigo-100 rounded-lg p-3">
+          <div class="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+            <div class="font-semibold text-sm text-slate-800">${t}${updated ? "" : ` <span class="text-[10px] text-slate-400 font-normal">(참고 · 카드 미반영)</span>`}</div>
+            <span class="text-[11px] px-2 py-0.5 rounded border font-bold mono ${scoreBadge(r.score)}">${r.score}/5</span>
+          </div>
+          <div class="text-[12px] text-slate-700 leading-relaxed">${escHtml(r.summary || "요약 없음")}</div>
+          ${evHtml}
+        </div>
+      `;
+    }).join("");
+
+    const overallHtml = result.overall ? `
+      <div class="bg-slate-900 text-white rounded-lg p-3 mt-2">
+        <div class="text-[10px] uppercase tracking-wider font-bold text-indigo-300 mb-1">종합 평가</div>
+        <div class="text-[12px] leading-relaxed">${escHtml(result.overall)}</div>
+      </div>
+    ` : "";
+
+    body.innerHTML = rowsHtml + overallHtml;
+    panel.classList.remove("hidden");
+  }
+
+  const setLamp = (el, kind) => {
+    el.classList.remove("signal-green", "signal-yellow", "signal-red", "signal-gray");
+    el.classList.add("signal-" + kind);
+  };
+  const setChip = (el, kind, text) => {
+    el.className = "chip " + (kind === "green" ? "badge-green" : kind === "yellow" ? "badge-yellow" : kind === "red" ? "badge-red" : "");
+    if (kind === "") el.className = "chip bg-slate-100 text-slate-500 border border-slate-200";
+    el.textContent = text;
+  };
+
+  const compute = () => {
+    const v = getVals();
+    $("stockNameLabel").textContent = v.name ? "· " + v.name : "";
+
+    const valid = isFinite(v.mcap) && isFinite(v.curAssets) && isFinite(v.totalLiab)
+               && isFinite(v.equity) && v.ownerEarnFilled
+               && isFinite(v.k) && isFinite(v.w)
+               && v.mcap > 0 && v.equity !== 0;
+
+    if (!valid) {
+      resetView();
+      return;
+    }
+
+    // --- NCAV ---
+    const ncav = v.curAssets - v.totalLiab;
+    const ncavPass = ncav > v.mcap;
+    const ncavRatio = v.mcap / ncav;                  // <1 이면 통과
+    const ncavMargin = 1 - (v.mcap / ncav);           // 안전마진 (NCAV 대비)
+
+    // --- S-RIM ---
+    const roe = v.ownerEarn / v.equity;
+    const excess = v.equity * (roe - v.k);
+    const denom = 1 + v.k - v.w;
+    const iv = v.equity + (excess * v.w) / denom;
+    const srimRatio = v.mcap / iv;
+    const safetyMargin = 1 - srimRatio;               // > 0.4 이면 통과
+    const srimPass = isFinite(iv) && iv > 0 && srimRatio <= 0.6;
+
+    // --- Badges on each filter ---
+    setChip($("ncavBadge"), ncavPass ? "green" : "red", ncavPass ? "통과" : "미달");
+    setChip($("srimBadge"), srimPass ? "green" : "red", srimPass ? "통과" : "미달");
+
+    $("ncavValue").textContent = fmt(ncav) + " 억";
+    $("srimValue").textContent = (isFinite(iv) ? fmt(iv) : "—") + " 억";
+
+    // NCAV bar: how much of NCAV is "left" after market cap (safety margin)
+    const ncavBarPct = isFinite(ncav) && ncav > 0 ? Math.max(0, Math.min(100, ncavMargin * 100)) : 0;
+    $("ncavBar").style.width = ncavBarPct + "%";
+    $("ncavBar").style.background = ncavPass ? "#10B981" : "#94A3B8";
+    $("ncavRatio").textContent = isFinite(ncavRatio) ? ncavRatio.toFixed(2) + "x" : "—";
+
+    // S-RIM bar: safety margin filled up to the 40% threshold visualization (cap 100%)
+    const srimBarPct = isFinite(iv) && iv > 0 ? Math.max(0, Math.min(100, safetyMargin * 100)) : 0;
+    $("srimBar").style.width = srimBarPct + "%";
+    $("srimBar").style.background = srimPass ? "#10B981" : (safetyMargin > 0 ? "#F59E0B" : "#94A3B8");
+    $("safetyMargin").textContent = isFinite(safetyMargin) ? (safetyMargin*100).toFixed(1) + "%" : "—";
+
+    // --- Verdict ---
+    let kind, vtext;
+    if (ncavPass && srimPass) {
+      kind = "green";  vtext = "DOUBLE PASS · 적극 관심";
+    } else if (ncavPass || srimPass) {
+      kind = "yellow"; vtext = "SINGLE PASS · 관찰 대상";
+    } else {
+      kind = "red";    vtext = "REJECT · 회피";
+    }
+
+    setLamp($("lampGreen"),  kind === "green"  ? "green"  : "gray");
+    setLamp($("lampYellow"), kind === "yellow" ? "yellow" : "gray");
+    setLamp($("lampRed"),    kind === "red"    ? "red"    : "gray");
+    $("verdictText").textContent = kind === "green" ? "Double Pass" : kind === "yellow" ? "Single Pass" : "Reject";
+    $("verdictText").className = "mt-0.5 text-center font-bold text-[10px] uppercase tracking-wider whitespace-nowrap " + (kind==="green"?"text-emerald-300":kind==="yellow"?"text-amber-300":"text-rose-300");
+    setChip($("statusChip"), kind, kind === "green" ? "Double Pass" : kind === "yellow" ? "Single Pass" : "Reject");
+
+    // Card highlight
+    $("ncavCard").className = "p-4 rounded-xl border " + (ncavPass ? "border-emerald-300 bg-emerald-50/50" : "border-slate-200 bg-slate-50");
+    $("srimCard").className = "p-4 rounded-xl border " + (srimPass ? "border-emerald-300 bg-emerald-50/50" : "border-slate-200 bg-slate-50");
+
+    // Detail
+    $("d_ncav").textContent   = fmt(ncav) + " 억";
+    $("d_roe").textContent    = pct(roe);
+    $("d_excess").textContent = fmt(excess) + " 억";
+    $("d_iv").textContent     = (isFinite(iv) ? fmt(iv) + " 억" : "발산(해 없음)");
+    $("d_ratioNcav").textContent = isFinite(ncavRatio) ? ncavRatio.toFixed(3) + "x" : "—";
+    $("d_ratioIV").textContent   = isFinite(srimRatio) ? srimRatio.toFixed(3) + "x" : "—";
+    $("d_marginNcav").textContent = (ncavMargin*100).toFixed(1) + "%";
+    $("d_marginIV").textContent   = (safetyMargin*100).toFixed(1) + "%";
+
+    // Store last quant result for final verdict composition
+    state.lastQuantKind = kind;
+    state.hasEvaluated = true;
+    updateFinalVerdict();
+  };
+
+  // ── 최종 종합 판정: 정량(NCAV/S-RIM) + 해자(Moat) 결합
+  //   정성 체크리스트는 참고용으로 판정에 영향을 주지 않음
+  const updateFinalVerdict = () => {
+    const el = $("finalVerdict");
+    const lbl = $("finalVerdictLabel");
+    const txt = $("finalVerdictText");
+    const dtl = $("finalVerdictDetail");
+    if (!state.hasEvaluated) {
+      el.className = "mt-6 p-5 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50";
+      lbl.className = "text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-1";
+      txt.textContent = "판정 대기";
+      txt.className = "text-lg font-bold text-slate-500";
+      dtl.textContent = "판정하기 + 해자 평가 시 최종 매수 적합 판정";
+      dtl.className = "text-xs text-slate-500 mt-1.5 leading-relaxed";
+      return;
+    }
+    const quant = state.lastQuantKind;              // "green" | "yellow" | "red"
+    const mTotal = moatTotal();
+    const mTier = moatTierKey(mTotal);               // "strong" | "medium" | "weak" | "none"
+    const moatLabel = mTier === "strong" ? `강력한 해자 🛡️ ${mTotal}/20`
+                    : mTier === "medium" ? `해자 ${mTotal}/20`
+                    : mTier === "weak"   ? `약한 해자 ${mTotal}/20`
+                    :                      `해자 미평가`;
+
+    let tone, head, detail;
+    if (quant === "red") {
+      tone = "rose";
+      head = "최종 부적합 ✗ 매수 회피";
+      detail = `정량 필터 미달 · ${moatLabel} (해자 강도와 무관하게 회피 권고)`;
+    } else if (quant === "green" && mTier === "strong") {
+      tone = "emerald";
+      head = "최강 확신 ✓✓✓ 정량 + 강력한 해자";
+      detail = `정량 Double Pass + ${moatLabel} · 핵심 보유 후보`;
+    } else if (quant === "green" && mTier === "medium") {
+      tone = "emerald";
+      head = "매수 적합 ✓✓ 정량·해자 확인";
+      detail = `정량 Double Pass + ${moatLabel} · 포지션 사이징 후 진입 고려`;
+    } else if (quant === "green") {
+      tone = "amber";
+      head = "매수 검토 · 해자 보완 필요";
+      detail = `정량 Double Pass · ${moatLabel} · 해자 강화 확인 후 진입 결정`;
+    } else if (quant === "yellow" && mTier === "strong") {
+      tone = "emerald";
+      head = "적합 · 강력한 해자로 단일축 보완";
+      detail = `정량 Single Pass + ${moatLabel} · 해자 프리미엄 감안 적정 비중 편입`;
+    } else {
+      tone = "amber";
+      head = "제한적 적합 · 비중 조절 후 편입";
+      detail = `정량 Single Pass · ${moatLabel} · 비중을 보수적으로 설정`;
+    }
+
+    const map = {
+      emerald: { box: "bg-emerald-50 border-emerald-500", text: "text-emerald-700", sub: "text-emerald-800" },
+      amber:   { box: "bg-amber-50 border-amber-500",     text: "text-amber-700",   sub: "text-amber-800" },
+      rose:    { box: "bg-rose-50 border-rose-500",       text: "text-rose-700",    sub: "text-rose-800" },
+    }[tone];
+    el.className = "mt-6 p-5 rounded-xl border-2 " + map.box;
+    lbl.className = "text-[11px] uppercase tracking-wider font-semibold mb-1 " + map.text;
+    txt.textContent = head;
+    txt.className = "text-xl font-extrabold " + map.text;
+    dtl.textContent = detail;
+    dtl.className = "text-xs mt-1.5 leading-relaxed " + map.sub;
+  };
+
+  const resetView = () => {
+    setLamp($("lampGreen"), "gray"); setLamp($("lampYellow"), "gray"); setLamp($("lampRed"), "gray");
+    $("verdictText").textContent = "대기";
+    $("verdictText").className = "mt-0.5 text-center font-bold text-[10px] uppercase tracking-wider whitespace-nowrap text-slate-400";
+    setChip($("statusChip"), "", "대기 중");
+    setChip($("ncavBadge"), "", "-");
+    setChip($("srimBadge"), "", "-");
+    $("ncavValue").textContent = "—"; $("srimValue").textContent = "—";
+    $("ncavBar").style.width = "0%"; $("srimBar").style.width = "0%";
+    $("ncavRatio").textContent = "—"; $("safetyMargin").textContent = "—";
+    ["d_ncav","d_roe","d_excess","d_iv","d_ratioNcav","d_ratioIV","d_marginNcav","d_marginIV"]
+      .forEach(id => $(id).textContent = "—");
+    state.hasEvaluated = false;
+    state.lastQuantKind = null;
+    updateFinalVerdict();
+  };
+
+  // Stale indicator: after evaluation, input change prompts re-evaluation
+  const markStale = () => {
+    if (state.hasEvaluated) {
+      const msg = $("inputStatus");
+      msg.textContent = "입력이 변경됨 · 다시 판정하기를 눌러주세요";
+      msg.className = "flex-1 text-[11px] text-amber-600 text-right self-center font-medium";
+    }
+  };
+
+  // Listeners — input changes update derived display + completeness, NOT the main verdict
+  Object.values(inputs).forEach(el => {
+    el.addEventListener("input", () => { updateDerived(); markStale(); });
+  });
+
+  // 판정하기 button — triggers main verdict + 해자 자동 평가 (사용자가 수동 설정하지 않은 경우에만)
+  $("evaluateBtn").addEventListener("click", () => {
+    compute();
+    // 사업보고서 PDF가 있고 해자가 전부 0 (사용자 입력 없음)이면 자동 평가 수행
+    if (state.lastPdfLines && moatTotal() === 0) {
+      applyAutoMoat({ silent: false });
+    }
+    if (window.innerWidth < 1024) {
+      document.getElementById("statusChip").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+
+  // 🤖 사업보고서 기반 해자 재평가 (수동 값 덮어쓰기)
+  $("autoMoatBtn").addEventListener("click", () => {
+    if (!state.lastPdfLines) {
+      toast("먼저 사업보고서 PDF를 업로드하세요", "error");
+      return;
+    }
+    applyAutoMoat({ silent: false });
+  });
+
+  // 예시 불러오기
+  $("loadSample").addEventListener("click", () => {
+    inputs.name.value = "흥국 (예시)";
+    inputs.mcap.value = 380;
+    inputs.curAssets.value = 900;
+    inputs.totalLiab.value = 180;
+    inputs.equity.value = 1100;
+    inputs.netIncome.value = 140;
+    inputs.depreciation.value = 60;
+    inputs.capex.value = 50;
+    inputs.k.value = 8.12;
+    inputs.w.value = 0.9;
+    updateDerived();
+    compute();
+  });
+
+  // 초기화
+  $("resetBtn").addEventListener("click", () => {
+    Object.values(inputs).forEach(el => {
+      if (el.id === "k") el.value = "8.12";
+      else if (el.id === "w") el.value = "0.9";
+      else el.value = "";
+    });
+    // reset checklist
+    document.querySelectorAll(".check-item").forEach(c => c.checked = false);
+    document.querySelectorAll(".check-memo").forEach(m => m.value = "");
+    state.checks = { dividend: false, chart: false, ceo: false };
+    $("checkCount").textContent = "0";
+    document.querySelectorAll(".check-card").forEach(c => c.classList.remove("bg-emerald-50","border-emerald-400"));
+    // reset moat scores + auto-eval evidence
+    state.moats = { intangible: 0, switching: 0, network: 0, cost: 0 };
+    state.lastPdfLines = null;
+    state.lastMoatEvidence = null;
+    state.lastBizContext = null;
+    state.lastSubsContext = null;
+    state.aiMoatResult = null;
+    state.lastParsed = null;
+    renderMoatEvidence(null);
+    syncMoatUI();
+    const amBtn = $("autoMoatBtn");
+    if (amBtn) amBtn.disabled = true;
+    const aiBtn = $("aiMoatBtn");
+    if (aiBtn) aiBtn.disabled = true;
+    const aiPanel = $("aiMoatPanel");
+    if (aiPanel) aiPanel.classList.add("hidden");
+    document.querySelectorAll(".moat-detail-btn").forEach(b => { b.disabled = true; b.title = "사업보고서 업로드 후 활성화됩니다"; });
+    // reset upload
+    $("uploadStatus").textContent = "아직 업로드된 파일이 없습니다";
+    $("uploadStatus").className = "text-[11px] text-slate-500 mt-3";
+    $("extractReport").classList.add("hidden");
+    $("reportFile").value = "";
+    updateDerived();
+    resetView();
+  });
+
+  // ── 체크리스트 연동
+  document.querySelectorAll(".check-item").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const key = cb.dataset.key;
+      state.checks[key] = cb.checked;
+      const card = cb.closest(".check-card");
+      if (cb.checked) card.classList.add("bg-emerald-50","border-emerald-400");
+      else card.classList.remove("bg-emerald-50","border-emerald-400");
+      $("checkCount").textContent = Object.values(state.checks).filter(Boolean).length;
+      updateFinalVerdict();
+    });
+  });
+
+  // ── PDF 사업보고서 자동 추출
+  $("pickFileBtn").addEventListener("click", () => $("reportFile").click());
+  // Drag & drop
+  const uz = $("uploadZone");
+  ["dragenter","dragover"].forEach(e => uz.addEventListener(e, ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    uz.classList.add("border-slate-900","bg-slate-100");
+  }));
+  ["dragleave","drop"].forEach(e => uz.addEventListener(e, ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    uz.classList.remove("border-slate-900","bg-slate-100");
+  }));
+  uz.addEventListener("drop", ev => {
+    const f = ev.dataTransfer.files && ev.dataTransfer.files[0];
+    if (f) handleReportFile(f);
+  });
+  $("reportFile").addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) handleReportFile(f);
+  });
+
+  async function handleReportFile(file) {
+    const status = $("uploadStatus");
+    const report = $("extractReport");
+    status.textContent = `📄 ${file.name} · 추출 중...`;
+    status.className = "text-[11px] text-slate-700 mt-3 font-medium";
+    report.classList.add("hidden");
+
+    if (!window.pdfjsLib) {
+      status.textContent = "PDF 라이브러리 로드 실패. 새로고침 후 다시 시도하세요.";
+      status.className = "text-[11px] text-rose-600 mt-3 font-medium";
+      return;
+    }
+    try {
+      const lines = await extractPdfLines(file);
+      const parsed = parseFinancials(lines);
+      state.lastParsed = parsed;
+      applyParsed(parsed);
+      // 해자 자동 평가용으로 추출 라인 보관 + 재평가 / 상세분석 / AI 버튼 활성화
+      state.lastPdfLines = lines;
+      state.lastBizContext = null;
+      state.lastSubsContext = null;
+      state.aiMoatResult = null;
+      const amBtn = $("autoMoatBtn");
+      if (amBtn) amBtn.disabled = false;
+      const aiBtn = $("aiMoatBtn");
+      if (aiBtn) aiBtn.disabled = false;
+      document.querySelectorAll(".moat-detail-btn").forEach(b => { b.disabled = false; b.title = "사업보고서 기반 해자 해석 보기"; });
+      // Build summary rows
+      const scopeLabel = (s) => s === "consolidated" ? "연결" : s === "standalone" ? "별도" : "—";
+      const valOf = (x) => x?.val ?? null;
+      const srcOf = (x) => x ? `${scopeLabel(x.scope)} · ${x.unit || ""}${x.page ? " · p" + x.page : ""}` : "";
+      const rows = [
+        ["유동자산",            valOf(parsed.curAssets), srcOf(parsed.curAssets)],
+        ["총부채 (부채총계)",   valOf(parsed.totalLiab), srcOf(parsed.totalLiab)],
+        ["자기자본 (지배지분)", valOf(parsed.equity),    parsed.equity ? `${scopeLabel(parsed.equity.scope)} · ${parsed.equity.unit} · p${parsed.equity.page}${parsed.equity.dominant === false ? " · 자본총계" : ""}` : ""],
+        ["당기순이익 (지배)",   valOf(parsed.netIncome), parsed.netIncome ? `${scopeLabel(parsed.netIncome.scope)} · ${parsed.netIncome.unit} · p${parsed.netIncome.page}` : ""],
+        ["감가상각비 + 무형자산상각비", valOf(parsed.depreciation), parsed.depreciation ? `p${parsed.depreciation.dep?.page || parsed.depreciation.intan?.page} 비용의 성격별` : ""],
+        ["자본적지출 (PPE 취득)", valOf(parsed.capex),   parsed.capex ? `p${parsed.capex.items[0]?.page} 투자활동 · ${parsed.capex.items.length}건 합산` : ""],
+      ];
+      const detected = rows.filter(r => r[1] != null).length;
+
+      // 연결/별도 배지
+      const appliedScope = parsed.appliedScope || "unknown";
+      const scopeBadgeCls = appliedScope === "consolidated"
+        ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+        : appliedScope === "standalone"
+        ? "bg-amber-100 text-amber-800 border border-amber-300"
+        : "bg-slate-100 text-slate-500 border border-slate-300";
+      const scopeText = appliedScope === "consolidated"
+        ? "🔗 연결 재무제표 적용"
+        : appliedScope === "standalone"
+        ? "📄 별도 재무제표 적용" + (parsed.hasAnyConsolidated ? "" : " (연결 데이터 없음)")
+        : "스코프 불명 · 원문 확인 필요";
+
+      report.innerHTML = `
+        <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+          <span class="font-semibold text-slate-700">자동 추출 결과</span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full mono font-bold ${scopeBadgeCls}">${scopeText}</span>
+        </div>
+        <div class="text-[10px] text-slate-500 mb-1.5">단위별 환산 후 <span class="mono font-semibold text-slate-700">억 원</span> · 행별로 <b>연결/별도</b> 출처 표시</div>
+        ${rows.map(([label, val, src]) => `
+          <div class="border-b border-dashed border-slate-100 py-1.5">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-700 font-medium">${label}</span>
+              <span class="mono ${val != null ? "text-emerald-700 font-semibold" : "text-rose-500"}">
+                ${val != null ? val.toLocaleString("ko-KR", { maximumFractionDigits: 1 }) + " 억" : "미검출 · 수동 입력"}
+              </span>
+            </div>
+            ${src ? `<div class="text-[10px] text-slate-400 mono mt-0.5">${src}</div>` : ""}
+          </div>`).join("")}
+        <div class="mt-2 text-slate-500 leading-relaxed">💡 <b>연결재무제표 우선 추출</b> — 연결 데이터가 없을 때만 별도 재무제표를 사용합니다. 단위(원·천원·백만원)는 테이블별로 자동 보정합니다.</div>
+      `;
+      report.classList.remove("hidden");
+      status.textContent = `✓ ${file.name} · ${detected}/6 항목 자동 추출 (${scopeText.replace(/^[^\s]+\s/, "")}) · 판정하기 시 해자 자동 평가`;
+      status.className = "text-[11px] text-emerald-700 mt-3 font-medium";
+      updateDerived();
+      markStale();
+    } catch (err) {
+      console.error(err);
+      status.textContent = `추출 실패: ${err.message || err}`;
+      status.className = "text-[11px] text-rose-600 mt-3 font-medium";
+    }
+  }
+
+  // PDF.js 한글 CID 폰트 디코딩을 위한 CMap (Adobe-Korea1) CDN 경로
+  const PDFJS_CMAP_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/";
+
+  async function extractPdfLines(file) {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({
+      data: buf,
+      cMapUrl: PDFJS_CMAP_URL,
+      cMapPacked: true,
+    }).promise;
+    const lines = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      // Group by Y (row), sort within row by X
+      const rows = new Map();
+      for (const it of content.items) {
+        if (!it.str) continue;
+        const y = Math.round(it.transform[5]);
+        if (!rows.has(y)) rows.set(y, []);
+        rows.get(y).push({ x: it.transform[4], str: it.str });
+      }
+      const ordered = [...rows.entries()]
+        .sort((a,b) => b[0] - a[0])
+        .map(([, items]) => items.sort((a,b) => a.x - b.x).map(i => i.str).join(" ").replace(/\s+/g, " ").trim());
+      for (const line of ordered) if (line) lines.push({ page: i, line });
+    }
+    return lines;
+  }
+
+  // 라인별 단위 추적 + 섹션 게이팅 + 연결/별도 스코프 감지로 정확한 추출
+  //   - 단위 정규화: "(단위: 천원)", "단위 : 백만원", "단위=원" 모두 인식
+  //   - 스코프: 연결재무제표 섹션 진입시 "consolidated", 별도 섹션 "standalone"
+  //   - Pick 전략: 연결 우선 > 별도 > 미분류
+  const UNIT_FACTOR = { "원":1e-8, "천원":1e-5, "백만원":1e-2, "십억원":10, "억원":1 };
+
+  // 재무 단위 감지 (개선된 정규식): 괄호 유무/공백/콜론 생략 모두 허용
+  // 예시 매칭: "(단위: 원)", "(단위 : 천원)", "단위 : 백만원", "단위=백만원", "단위:천원"
+  function detectUnitInLine(line) {
+    const m = line.match(/단\s*위\s*[:：=]\s*\(?\s*(원|천\s*원|백만\s*원|십억\s*원|억\s*원)\s*\)?(?![가-힣])/);
+    if (!m) return null;
+    const normalized = m[1].replace(/\s+/g, "");
+    return UNIT_FACTOR[normalized] ? normalized : null;
+  }
+
+  // 연결/별도 섹션 감지
+  function detectScopeInLine(line, currentScope) {
+    // 강한 시그널: "연결재무상태표", "연결손익계산서" 등 본문 헤더
+    if (/연결\s*(재무상태표|손익계산서|포괄손익계산서|자본변동표|현금흐름표|재무제표\s*주석)/.test(line))
+      return "consolidated";
+    // 연결재무제표 섹션 진입 (2. 연결재무제표)
+    if (/^\s*\d+\.\s*연결\s*재무제표\s*$|\[연결\s*재무제표\]|연결\s*재무제표\s*\(.*\)/.test(line))
+      return "consolidated";
+    // 별도 재무제표 명시
+    if (/별도\s*(재무상태표|손익계산서|포괄손익계산서|자본변동표|현금흐름표)/.test(line))
+      return "standalone";
+    if (/^\s*\d+\.\s*재무제표\s*$/.test(line) && currentScope === "consolidated")
+      return "standalone";  // 연결 섹션 이후의 "N. 재무제표"는 별도
+    if (/^\s*\[재무제표\]|재무제표\s*\(별도/.test(line))
+      return "standalone";
+    return currentScope;
+  }
+
+  function firstNumberInLine(line) {
+    const m = line.match(/[\(\-△▲]?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*\)?/);
+    if (!m) return null;
+    const raw = m[0];
+    const neg = /^\s*[\(\-△▲]/.test(raw);
+    const n = parseFloat(raw.replace(/[(),\s△▲\-]/g, ""));
+    return isFinite(n) && n !== 0 ? (neg ? -n : n) : null;
+  }
+
+  function parseFinancials(lines) {
+    let unit = "원", factor = 1e-8;
+    let scope = "unknown";  // "consolidated" | "standalone" | "unknown"
+    let inInvesting = false, firstInvDone = false;
+    let expNoteWindow = 0, depCap = null, intanCap = null;
+
+    const hits = { curAssets: [], totalLiab: [], equity: [], netIncome: [], capex: [] };
+
+    for (const { page, line } of lines) {
+      // 연결/별도 스코프 갱신
+      scope = detectScopeInLine(line, scope);
+
+      // 라인별 단위 갱신 (개선된 정규식)
+      const u = detectUnitInLine(line);
+      if (u) { unit = u; factor = UNIT_FACTOR[u]; }
+
+      // CapEx: 첫 투자활동현금흐름 섹션에서만 집계
+      if (/투자활동현금흐름/.test(line) && !firstInvDone) inInvesting = true;
+      if (/(재무활동현금흐름|영업활동현금흐름)/.test(line) && inInvesting && !/투자활동/.test(line)) {
+        inInvesting = false;
+        if (hits.capex.length > 0) firstInvDone = true;
+      }
+
+      // 감가상각비: '비용의 성격별 분류' 노트 근처에서 최초 1회만 캡처
+      if (/비용의?\s*성격별?\s*분류/.test(line) && depCap == null) expNoteWindow = 40;
+      if (expNoteWindow > 0) expNoteWindow--;
+
+      const v = firstNumberInLine(line);
+      if (v == null) continue;
+      const val = v * factor;
+
+      // 라벨 매칭 (행 시작 앵커 + 대괄호 요약 표기 허용) — 스코프 태깅 포함
+      if (/^\s*\[?\s*유동자산\s*\]?\s+[\d\(\-△▲]/.test(line))
+        hits.curAssets.push({ val, unit, scope, page, line });
+      if (/^\s*\[?\s*부\s*채\s*총\s*계\s*\]?\s+[\d\(\-△▲]/.test(line))
+        hits.totalLiab.push({ val, unit, scope, page, line });
+      if (/^\s*\[?\s*지배기업의\s*소유주지분\s*\]?\s+[\d\(\-△▲]/.test(line))
+        hits.equity.push({ val, unit, scope, page, line, dominant: true });
+      else if (/^\s*\[?\s*자\s*본\s*총\s*계\s*\]?\s+[\d\(\-△▲]/.test(line))
+        hits.equity.push({ val, unit, scope, page, line, dominant: false });
+      if (/지배기업의?\s*소유주.*당기순이익|지배주주.*당기순이익/.test(line))
+        hits.netIncome.push({ val, unit, scope, page, line, dominant: true });
+      else if (/^\s*당기순이익(\s*\(\s*손실\s*\))?\s+[\d\(\-△▲]/.test(line))
+        hits.netIncome.push({ val, unit, scope, page, line, dominant: false });
+
+      if (expNoteWindow > 0 && depCap == null && /^감가상각비\s+[\d\(\-△▲]/.test(line))
+        depCap = { val: Math.abs(val), unit, scope, page, line };
+      if (expNoteWindow > 0 && intanCap == null && /^무형자산상각비\s+[\d\(\-△▲]/.test(line))
+        intanCap = { val: Math.abs(val), unit, scope, page, line };
+
+      // CapEx: 투자활동 섹션 내 PPE/무형 취득 서브항목 합산
+      if (inInvesting && /(유형자산|기계장치|건설중인자산|기구비품|차량운반구|공구기구|토지|건물|기타유형자산|무형자산)의?\s*취득\s+[\(\-△▲]/.test(line))
+        hits.capex.push({ val: Math.abs(val), unit, scope, page, line });
+    }
+
+    // Pick 전략: 연결 우선 > 별도 > 미분류, 각 그룹 내 "원" > "백만원" > 기타
+    const pickBy = (arr, dominantOnly = false) => {
+      if (!arr?.length) return null;
+      const filtered = dominantOnly ? arr.filter(h => h.dominant) : arr;
+      const pool = filtered.length ? filtered : arr;  // dominant 없으면 전체
+      const order = [
+        h => h.scope === "consolidated" && h.unit === "원",
+        h => h.scope === "consolidated" && h.unit === "백만원",
+        h => h.scope === "consolidated" && h.unit === "천원",
+        h => h.scope === "consolidated",
+        h => h.scope === "standalone"   && h.unit === "원",
+        h => h.scope === "standalone"   && h.unit === "백만원",
+        h => h.scope === "standalone",
+        h => h.unit === "원",
+        h => h.unit === "백만원",
+        () => true,
+      ];
+      for (const test of order) {
+        const hit = pool.find(test);
+        if (hit) return hit;
+      }
+      return pool[0];
+    };
+    const pick = (arr) => pickBy(arr, false);
+    const pickDom = (arr) => pickBy(arr, true);
+
+    const depSum = (depCap?.val || 0) + (intanCap?.val || 0);
+
+    const picked = {
+      curAssets:    pick(hits.curAssets),
+      totalLiab:    pick(hits.totalLiab),
+      equity:       pickDom(hits.equity),
+      netIncome:    pickDom(hits.netIncome),
+      depreciation: depSum > 0 ? { val: depSum, dep: depCap, intan: intanCap } : null,
+      capex:        hits.capex.length ? { val: hits.capex.reduce((s,h) => s + h.val, 0), items: hits.capex } : null,
+    };
+
+    // 적용된 스코프: 주요 지표(자기자본/순이익/부채/유동자산) 중 가장 자주 나온 scope
+    const scopeVotes = { consolidated: 0, standalone: 0, unknown: 0 };
+    for (const k of ["curAssets", "totalLiab", "equity", "netIncome"]) {
+      const s = picked[k]?.scope || "unknown";
+      scopeVotes[s] = (scopeVotes[s] || 0) + 1;
+    }
+    const appliedScope = scopeVotes.consolidated >= scopeVotes.standalone
+      ? (scopeVotes.consolidated > 0 ? "consolidated" : "unknown")
+      : "standalone";
+
+    // 연결 데이터가 하나도 없는지 체크 (UI 안내용)
+    const hasAnyConsolidated = Object.values(hits).some(arr => arr.some && arr.some(h => h.scope === "consolidated"));
+
+    return {
+      ...picked,
+      appliedScope,
+      hasAnyConsolidated,
+    };
+  }
+
+  function applyParsed(parsed) {
+    const map = ["curAssets","totalLiab","equity","netIncome","depreciation","capex"];
+    for (const key of map) {
+      const v = parsed[key]?.val;
+      if (v != null && isFinite(v)) {
+        inputs[key].value = Math.round(v * 10) / 10;
+        inputs[key].classList.add("bg-emerald-50");
+        setTimeout(() => inputs[key].classList.remove("bg-emerald-50"), 2500);
+      }
+    }
+  }
+
+  // ── 최종 매수 결정 라디오
+  let currentDecision = null;
+  document.querySelectorAll(".decision-opt").forEach(opt => {
+    opt.addEventListener("click", () => {
+      const val = opt.dataset.value;
+      currentDecision = val;
+      document.querySelectorAll(".decision-opt").forEach(o => {
+        const isSel = o.dataset.value === val;
+        o.classList.toggle("border-slate-900", isSel);
+        o.classList.toggle("bg-slate-900", isSel);
+        o.classList.toggle("text-white", isSel);
+        o.querySelectorAll("div").forEach(d => { if (isSel) d.classList.add("text-white"); else d.classList.remove("text-white"); });
+        const input = o.querySelector("input[type=radio]");
+        input.checked = isSel;
+      });
+    });
+  });
+  const resetDecisionUI = () => {
+    currentDecision = null;
+    document.querySelectorAll(".decision-opt").forEach(o => {
+      o.classList.remove("border-slate-900","bg-slate-900","text-white");
+      o.querySelectorAll("div").forEach(d => d.classList.remove("text-white"));
+      const input = o.querySelector("input[type=radio]"); input.checked = false;
+    });
+    $("memo").value = "";
+  };
+
+  // ── 토스트
+  const toast = (msg, kind="default") => {
+    const el = $("toast");
+    const bg = kind === "error" ? "bg-rose-600" : kind === "success" ? "bg-emerald-600" : "bg-slate-900";
+    el.className = `fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-xl text-white text-sm font-medium shadow-2xl transition-all duration-200 ${bg}`;
+    el.textContent = msg;
+    el.style.opacity = "1";
+    el.style.transform = "translate(-50%, 0)";
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { el.style.opacity = "0"; }, 2200);
+  };
+
+  // ── 투자종목 리스트 렌더
+  const renderWatchlist = () => {
+    const list = loadWatchlist();
+    $("listCount").textContent = list.length;
+    $("modalCount").textContent = list.length;
+    const body = $("listBody");
+    const empty = $("listEmpty");
+    // 기존 아이템 제거 (empty 제외)
+    Array.from(body.children).forEach(c => { if (c.id !== "listEmpty") c.remove(); });
+    if (list.length === 0) {
+      empty.classList.remove("hidden");
+      return;
+    }
+    empty.classList.add("hidden");
+    const decisionMeta = {
+      buy:   { label: "매수 ✓", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+      watch: { label: "관찰 ◐", cls: "bg-amber-100 text-amber-800 border-amber-300" },
+      skip:  { label: "회피 ✗", cls: "bg-rose-100 text-rose-800 border-rose-300" },
+    };
+    list.forEach(item => {
+      const d = decisionMeta[item.decision] || { label: item.decision, cls: "bg-slate-100 text-slate-600 border-slate-300" };
+      const card = document.createElement("div");
+      card.className = "bg-white p-4 rounded-xl border border-slate-200";
+      card.innerHTML = `
+        <div class="flex justify-between items-start gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="chip border ${d.cls}" style="padding:4px 10px;">${d.label}</span>
+            <div class="min-w-0">
+              <div class="font-bold text-base truncate">${escapeHtml(item.name || "이름 없음")}</div>
+              <div class="text-[11px] text-slate-500 mono">${item.savedAt}</div>
+            </div>
+          </div>
+          <button class="text-xs px-2 py-1 rounded-md border border-slate-200 text-slate-500 hover:border-rose-300 hover:text-rose-600 hover:bg-rose-50" data-delete="${item.id}">삭제</button>
+        </div>
+        <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1 text-[11px] mono">
+          <div class="flex justify-between sm:block"><span class="text-slate-500 sm:block">시가총액</span><span class="font-semibold">${fmt(item.mcap)} 억</span></div>
+          <div class="flex justify-between sm:block"><span class="text-slate-500 sm:block">NCAV</span><span class="font-semibold">${fmt(item.ncav)} 억</span></div>
+          <div class="flex justify-between sm:block"><span class="text-slate-500 sm:block">S-RIM IV</span><span class="font-semibold">${fmt(item.iv)} 억</span></div>
+          <div class="flex justify-between sm:block"><span class="text-slate-500 sm:block">안전마진</span><span class="font-semibold">${(item.safetyMargin*100).toFixed(1)}%</span></div>
+        </div>
+        <div class="mt-3 flex items-center gap-2 text-[11px] flex-wrap">
+          <span class="px-2 py-0.5 rounded-md ${item.quantKind==="green"?"bg-emerald-100 text-emerald-700":item.quantKind==="yellow"?"bg-amber-100 text-amber-700":"bg-rose-100 text-rose-700"} font-semibold">정량 ${item.quantKind==="green"?"Double":item.quantKind==="yellow"?"Single":"Reject"}</span>
+          <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold">정성 ${item.checksCount}/3</span>
+          ${item.moatTotal != null ? `<span class="px-2 py-0.5 rounded-md ${item.moatTier==="strong"?"bg-emerald-100 text-emerald-700":item.moatTier==="medium"?"bg-amber-100 text-amber-700":item.moatTier==="weak"?"bg-rose-100 text-rose-700":"bg-slate-100 text-slate-500"} font-semibold">🛡️ 해자 ${item.moatTotal}/20</span>` : ""}
+        </div>
+        ${item.memo ? `<div class="mt-3 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-2.5 leading-relaxed">${escapeHtml(item.memo).replace(/\n/g,"<br/>")}</div>` : ""}
+      `;
+      body.appendChild(card);
+    });
+    // delete handlers
+    body.querySelectorAll("[data-delete]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.delete;
+        const next = loadWatchlist().filter(x => x.id !== id);
+        saveWatchlist(next);
+        renderWatchlist();
+        toast("삭제되었습니다");
+      });
+    });
+  };
+  const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+
+  // ── 저장 버튼
+  $("saveBtn").addEventListener("click", () => {
+    const v = getVals();
+    if (!state.hasEvaluated) { toast("먼저 '판정하기'를 눌러주세요", "error"); return; }
+    if (!v.name) { toast("종목명을 입력해주세요", "error"); inputs.name.focus(); return; }
+    if (!currentDecision) { toast("최종 매수 여부를 선택해주세요", "error"); return; }
+
+    // Recompute for latest stored figures (consistent with visible state)
+    const ncav = v.curAssets - v.totalLiab;
+    const roe = v.ownerEarn / v.equity;
+    const excess = v.equity * (roe - v.k);
+    const iv = v.equity + (excess * v.w) / (1 + v.k - v.w);
+    const srimRatio = v.mcap / iv;
+
+    const nowMs = Date.now();
+    const mTotal = moatTotal();
+    const entry = {
+      id: String(nowMs) + Math.random().toString(36).slice(2,6),
+      savedAtMs: nowMs,
+      savedAt: new Date(nowMs).toLocaleString("ko-KR", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" }),
+      name: v.name, mcap: v.mcap,
+      curAssets: v.curAssets, totalLiab: v.totalLiab, equity: v.equity,
+      netIncome: v.netIncome, depreciation: v.depreciation, capex: v.capex,
+      ownerEarn: v.ownerEarn, k: v.k, w: v.w,
+      ncav, iv, srimRatio, safetyMargin: 1 - srimRatio,
+      quantKind: state.lastQuantKind,
+      checks: { ...state.checks },
+      checksCount: Object.values(state.checks).filter(Boolean).length,
+      moats: { ...state.moats },
+      moatTotal: mTotal,
+      moatTier: moatTierKey(mTotal),
+      decision: currentDecision,
+      memo: $("memo").value.trim(),
+    };
+    const list = loadWatchlist();
+    list.unshift(entry);
+    saveWatchlist(list);
+    renderWatchlist();
+    toast(`✓ ${entry.name} 저장됨 · 리스트 ${list.length}건`, "success");
+
+    // 메인 페이지 초기화
+    Object.values(inputs).forEach(el => {
+      if (el.id === "k") el.value = "8.12";
+      else if (el.id === "w") el.value = "0.9";
+      else el.value = "";
+    });
+    document.querySelectorAll(".check-item").forEach(c => c.checked = false);
+    document.querySelectorAll(".check-memo").forEach(m => m.value = "");
+    document.querySelectorAll(".check-card").forEach(c => c.classList.remove("bg-emerald-50","border-emerald-400"));
+    state.checks = { dividend: false, chart: false, ceo: false };
+    $("checkCount").textContent = "0";
+    state.moats = { intangible: 0, switching: 0, network: 0, cost: 0 };
+    state.lastPdfLines = null;
+    state.lastMoatEvidence = null;
+    renderMoatEvidence(null);
+    syncMoatUI();
+    { const amBtn = $("autoMoatBtn"); if (amBtn) amBtn.disabled = true; }
+    $("uploadStatus").textContent = "아직 업로드된 파일이 없습니다";
+    $("uploadStatus").className = "text-[11px] text-slate-500 mt-3";
+    $("extractReport").classList.add("hidden");
+    $("reportFile").value = "";
+    resetDecisionUI();
+    updateDerived();
+    resetView();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  // ── 리스트 모달 제어
+  const openList = () => {
+    renderWatchlist();
+    const m = $("listModal");
+    m.classList.remove("hidden");
+    m.style.display = "flex";
+    document.body.style.overflow = "hidden";
+  };
+  const closeList = () => {
+    const m = $("listModal");
+    m.classList.add("hidden");
+    m.style.display = "none";
+    document.body.style.overflow = "";
+  };
+  $("openListBtn").addEventListener("click", openList);
+  $("closeListBtn").addEventListener("click", closeList);
+  $("listModal").addEventListener("click", (e) => { if (e.target.id === "listModal") closeList(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeList(); closeMoatDetail(); closeSettings(); } });
+
+  // 해자 상세분석 팝업
+  document.querySelectorAll(".moat-detail-btn").forEach(btn => {
+    btn.addEventListener("click", () => openMoatDetail(btn.dataset.key));
+  });
+  $("closeMoatDetailBtn").addEventListener("click", closeMoatDetail);
+  $("moatDetailModal").addEventListener("click", (e) => { if (e.target.id === "moatDetailModal") closeMoatDetail(); });
+
+  // ⚙️ API 설정 팝업
+  $("openSettingsBtn").addEventListener("click", openSettings);
+  $("closeSettingsBtn").addEventListener("click", closeSettings);
+  $("settingsModal").addEventListener("click", (e) => { if (e.target.id === "settingsModal") closeSettings(); });
+  $("llmProvider").addEventListener("change", updateModelHint);
+  $("toggleApiKeyBtn").addEventListener("click", () => {
+    const inp = $("llmApiKey");
+    const btn = $("toggleApiKeyBtn");
+    if (inp.type === "password") { inp.type = "text"; btn.textContent = "숨김"; }
+    else { inp.type = "password"; btn.textContent = "표시"; }
+  });
+  $("saveSettingsBtn").addEventListener("click", () => {
+    const provider = $("llmProvider").value;
+    const model    = $("llmModel").value.trim();
+    const apiKey   = $("llmApiKey").value.trim();
+    if (!apiKey) { toast("API Key를 입력하세요", "error"); return; }
+    if (provider === "anthropic" && !apiKey.startsWith("sk-ant")) {
+      toast("⚠️ Anthropic Key는 보통 sk-ant-로 시작합니다", "");
+    }
+    saveSettings({ provider, model, apiKey });
+    $("settingsStatus").textContent = "✓ 저장됨 · AI 분석 버튼을 사용할 수 있습니다";
+    $("settingsStatus").className = "text-[11px] text-center text-emerald-600";
+    toast("설정이 저장되었습니다", "success");
+  });
+  $("clearSettingsBtn").addEventListener("click", () => {
+    if (!confirm("저장된 API 설정을 모두 삭제하시겠습니까?")) return;
+    clearSettings();
+    $("llmApiKey").value = "";
+    $("llmModel").value = "";
+    $("settingsStatus").textContent = "설정이 삭제되었습니다";
+    $("settingsStatus").className = "text-[11px] text-center text-rose-600";
+    toast("설정 삭제됨", "");
+  });
+
+  // ✨ AI 해자 분석
+  $("aiMoatBtn").addEventListener("click", runAiMoatAnalysis);
+  $("aiMoatCloseBtn").addEventListener("click", () => $("aiMoatPanel").classList.add("hidden"));
+
+  // CSV 내보내기
+  $("exportCsvBtn").addEventListener("click", () => {
+    const list = loadWatchlist();
+    if (list.length === 0) { toast("저장된 종목이 없습니다", "error"); return; }
+    const headers = ["저장일시","종목명","결정","정량","정성","해자(20)","무형","전환","네트워크","원가","시가총액(억)","NCAV(억)","IV(억)","매수권장가(억)","안전마진(%)","자기자본(억)","주주이익(억)","메모"];
+    const rows = list.map(i => [
+      i.savedAt, i.name,
+      i.decision === "buy" ? "매수" : i.decision === "watch" ? "관찰" : "회피",
+      i.quantKind === "green" ? "Double" : i.quantKind === "yellow" ? "Single" : "Reject",
+      `${i.checksCount}/3`,
+      i.moatTotal ?? 0,
+      i.moats?.intangible ?? 0, i.moats?.switching ?? 0, i.moats?.network ?? 0, i.moats?.cost ?? 0,
+      i.mcap, i.ncav?.toFixed(1), i.iv?.toFixed(1),
+      isFinite(i.iv) ? (i.iv * 0.6).toFixed(1) : "",
+      (i.safetyMargin*100).toFixed(1),
+      i.equity, i.ownerEarn?.toFixed(1),
+      `"${(i.memo||"").replace(/"/g,'""')}"`,
+    ].join(","));
+    const csv = "﻿" + [headers.join(","), ...rows].join("\n"); // BOM for Excel Korean
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `watchlist_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // 전체 삭제 (리스트만)
+  $("clearListBtn").addEventListener("click", () => {
+    if (!confirm("저장된 모든 투자종목을 삭제하시겠습니까? 되돌릴 수 없습니다.")) return;
+    saveWatchlist([]);
+    renderWatchlist();
+    toast("전체 삭제되었습니다");
+  });
+
+  // 전체 초기화 (현재 입력 + 저장된 리스트 + 모든 로컬 데이터)
+  $("hardResetBtn").addEventListener("click", () => {
+    if (!confirm("현재 입력과 저장된 투자종목 리스트를 모두 삭제하시겠습니까?\n되돌릴 수 없습니다.")) return;
+    // wipe all localStorage keys used by this app
+    localStorage.removeItem(WATCHLIST_KEY);
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith("vi_"))
+        .forEach(k => localStorage.removeItem(k));
+    } catch {}
+    // form + checklist + upload + decision reset via existing resetBtn flow
+    $("resetBtn").click();
+    // refresh list UI + close modal if open
+    renderWatchlist();
+    const m = $("listModal");
+    if (!m.classList.contains("hidden")) {
+      m.classList.add("hidden"); m.style.display = "none"; document.body.style.overflow = "";
+    }
+    toast("전체 초기화 완료 · 모든 데이터가 삭제되었습니다", "success");
+  });
+
+  // Initial render
+  buildMoatButtons();
+  updateDerived();
+  resetView();
+  renderWatchlist();
+})();
+</script>
+</body>
+</html>
